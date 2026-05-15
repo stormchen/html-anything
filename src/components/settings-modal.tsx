@@ -452,19 +452,51 @@ function CustomBinPath({
 }) {
   const t = useT();
   const [draft, setDraft] = useState(value);
-  // Keep the local input in sync if the persisted value changes from elsewhere
-  // (e.g. agent switch). Avoid clobbering an in-progress edit.
   useEffect(() => {
     setDraft(value);
   }, [value, agent.id]);
-  // Best-effort platform sniff for the placeholder hint. The actual path
-  // resolution happens server-side in `resolveBinForAgent`.
+
+  const isOllama = agent.id === "ollama";
+  const eyebrow = isOllama ? t("settings.agent.title") : t("agent.customBin.eyebrow");
+  const subtitle = isOllama
+    ? t("settings.agent.binPath.ollama")
+    : t("agent.customBin.subtitle", { agent: agent.label });
+
   const isWindows = typeof navigator !== "undefined" && /Win/i.test(navigator.platform);
-  const placeholder = isWindows
-    ? "C:\\Users\\you\\scoop\\apps\\nodejs\\current\\claude.cmd"
-    : "/usr/local/bin/claude";
+  const placeholder = isOllama
+    ? "http://localhost:11434"
+    : isWindows
+      ? "C:\\Users\\you\\scoop\\apps\\nodejs\\current\\claude.cmd"
+      : "/usr/local/bin/claude";
+
   const detected = agent.path;
   const dirty = draft.trim() !== value.trim();
+
+  const updateAgentModels = useStore((s) => s.updateAgentModels);
+  const [fetching, setFetching] = useState(false);
+
+  const fetchOllamaModels = async (host: string) => {
+    if (!isOllama || !host.trim()) return;
+    setFetching(true);
+    try {
+      const res = await fetch(`/api/agents/ollama-models?host=${encodeURIComponent(host)}`);
+      if (!res.ok) throw new Error("Fetch failed");
+      const data = await res.json();
+      if (data.models) {
+        updateAgentModels("ollama", data.models);
+      }
+    } catch (e) {
+      console.error("Failed to sync Ollama models:", e);
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  const handleCommit = (val: string) => {
+    onChange(val);
+    if (isOllama) fetchOllamaModels(val);
+  };
+
   return (
     <div
       className="mt-3 rounded-2xl p-4"
@@ -473,13 +505,13 @@ function CustomBinPath({
       <div className="flex items-baseline justify-between gap-3">
         <div>
           <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-faint)]">
-            {t("agent.customBin.eyebrow")}
+            {eyebrow}
           </div>
           <div className="text-[12.5px] text-[var(--ink-soft)] mt-0.5">
-            {t("agent.customBin.subtitle", { agent: agent.label })}
+            {subtitle} {fetching && <span className="ml-2 animate-pulse text-[10px] text-[var(--coral)]">Syncing...</span>}
           </div>
         </div>
-        {detected && (
+        {!isOllama && detected && (
           <div className="text-[10.5px] text-[var(--ink-mute)] max-w-[260px] text-right leading-snug">
             {t("agent.customBin.detected")}
             <code className="ml-1 break-all font-mono text-[10px] text-[var(--ink-soft)]">{detected}</code>
@@ -491,9 +523,9 @@ function CustomBinPath({
           type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onBlur={() => onChange(draft)}
+          onBlur={() => handleCommit(draft)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") onChange(draft);
+            if (e.key === "Enter") handleCommit(draft);
             if (e.key === "Escape") setDraft(value);
           }}
           placeholder={placeholder}

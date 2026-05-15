@@ -143,6 +143,9 @@ export function useConvert() {
           }
         }
         const endedAt = Date.now();
+        const finalHtml = useStore.getState().tasks.find((t) => t.id === taskId)?.html ?? "";
+        console.log("[Convert Debug] Final HTML length:", finalHtml.length);
+        console.log("[Convert Debug] First 300 chars:", JSON.stringify(finalHtml.slice(0, 300)));
         useStore.getState().patchStatsFor(taskId, { endedAt, durationMs: endedAt - startedAt });
         useStore.getState().setStatusFor(taskId, "done");
         // record the just-finished (content, html) as the new diff-edit baseline

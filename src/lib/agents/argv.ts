@@ -71,6 +71,7 @@ export function buildArgv(agent: string, _opts: AgentArgvOpts = {}): string[] {
       ];
     case "gemini":
       return [
+        "-p",
         "--output-format",
         "stream-json",
         "--yolo",

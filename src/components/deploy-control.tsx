@@ -7,6 +7,7 @@ import {
   useStore,
   selectActiveTask,
   type DeploymentRecord,
+  type Task,
 } from "@/lib/store";
 
 /**
@@ -27,12 +28,24 @@ import {
  * "coming soon" placeholder for it.
  */
 
+// Stable fallback — module-level constant so the same reference is returned
+// every time there are no deployments. This prevents Zustand's
+// useSyncExternalStore from thinking the snapshot changed on every render.
+const EMPTY_DEPLOYMENTS: DeploymentRecord[] = [];
+
+// Defined outside the component so the reference is stable across renders,
+// preventing useSyncExternalStore from seeing a "new" snapshot each time.
+function selectDeployments(s: { tasks: Task[]; activeTaskId: string }): DeploymentRecord[] {
+  const task = s.tasks.find((t) => t.id === s.activeTaskId);
+  // deployments is always initialised to [] in makeTask, so this path
+  // should only hit on very old persisted state that predates the field.
+  return task?.deployments ?? EMPTY_DEPLOYMENTS;
+}
+
 export function DeployControl() {
   const html = useStore((s) => selectActiveTask(s)?.html ?? "");
   const taskId = useStore((s) => s.activeTaskId);
-  const deployments = useStore(
-    (s) => selectActiveTask(s)?.deployments ?? [],
-  );
+  const deployments = useStore(selectDeployments);
   const removeDeploymentFor = useStore((s) => s.removeDeploymentFor);
   const t = useT();
   const { status, error, latest, deploy } = useDeploy();

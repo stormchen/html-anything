@@ -78,7 +78,18 @@ export type InvokeEvent =
   | { type: "done"; code: number | null }
   | { type: "error"; message: string };
 
+import { invokeOllamaNative } from "./ollama-native";
+
 export function invokeAgent(opts: InvokeOpts): ReadableStream<InvokeEvent> {
+  if (opts.agent === "ollama") {
+    return invokeOllamaNative({
+      model: opts.model,
+      prompt: opts.prompt,
+      signal: opts.signal,
+      host: opts.binOverride,
+    });
+  }
+
   const def = AGENTS.find((a) => a.id === opts.agent);
   if (!def) {
     return errorStream(`unknown agent: ${opts.agent}`);
@@ -158,20 +169,16 @@ export function invokeAgent(opts: InvokeOpts): ReadableStream<InvokeEvent> {
       if (promptViaMessageFlag) argv = [...argv, "--message", opts.prompt];
 
       try {
+        console.log("[DEBUG] Spawning agent:", bin!);
+        console.log("[DEBUG] Arguments:", JSON.stringify(argv));
         child = spawn(bin!, argv, {
           cwd: opts.cwd ?? process.cwd(),
           env,
           stdio: ["pipe", "pipe", "pipe"],
-          // On Windows, `spawn` cannot launch a `.cmd` / `.bat` shim (which is
-          // what npm installs for most CLI agents) without going through the
-          // shell. Without this, every agent invocation fails with
-          // EINVAL / "spawn 无效的参数". macOS/Linux use direct exec.
-          // Safety: prompt content is delivered via stdin or `--message
-          // <text>` (argv-message), not interpolated into a shell command,
-          // so this does not introduce a shell-injection vector.
           shell: process.platform === "win32",
         });
       } catch (err) {
+        console.error("[DEBUG] Spawn failed immediately:", err);
         safeEnqueue({
           type: "error",
           message: err instanceof Error ? err.message : String(err),
@@ -223,6 +230,7 @@ export function invokeAgent(opts: InvokeOpts): ReadableStream<InvokeEvent> {
 
       child.stderr.setEncoding("utf8");
       child.stderr.on("data", (chunk: string) => {
+        console.error("[DEBUG] AGENT STDERR:", chunk);
         safeEnqueue({ type: "stderr", text: chunk });
       });
 

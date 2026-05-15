@@ -121,6 +121,7 @@ export const AGENTS: AgentDef[] = [
     bin: "gemini",
     envOverride: "GEMINI_BIN",
     vendor: "Google",
+    protocol: "argv",
     fallbackModels: [
       DEFAULT_MODEL,
       { id: "gemini-2.5-pro", label: "gemini-2.5-pro" },
@@ -294,6 +295,20 @@ export const AGENTS: AgentDef[] = [
       { id: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro" },
     ],
   },
+  {
+    id: "ollama",
+    label: "Ollama (Local)",
+    bin: "ollama",
+    vendor: "Local",
+    protocol: "stdin", // Fallback, we'll handle it specially
+    fallbackModels: [
+      { id: "qwen2.5-coder:7b", label: "Qwen 2.5 Coder 7B" },
+      { id: "qwen2.5-coder:14b", label: "Qwen 2.5 Coder 14B" },
+      { id: "qwen2.5-coder:32b", label: "Qwen 2.5 Coder 32B" },
+      { id: "llama3.1:8b", label: "Llama 3.1 8B" },
+      { id: "deepseek-v3", label: "DeepSeek V3" },
+    ],
+  },
 ];
 
 function userToolchainDirs(): string[] {
@@ -436,6 +451,9 @@ export function detectAgents(): DetectedAgent[] {
       models: a.fallbackModels,
       unsupported: unsupported || undefined,
     };
+    if (a.id === "ollama") {
+      return { ...base, available: true };
+    }
     const override = a.envOverride ? process.env[a.envOverride] : undefined;
     if (override && existsSync(override)) {
       return { ...base, available: true, path: override, resolvedBin: a.bin };

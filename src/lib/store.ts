@@ -135,6 +135,7 @@ function makeTask(init?: Partial<Task>): Task {
     sampleId: init?.sampleId,
     createdAt: init?.createdAt ?? now,
     updatedAt: init?.updatedAt ?? now,
+    deployments: init?.deployments ?? [],
   };
 }
 
@@ -260,6 +261,8 @@ type State = {
   setSidebarCollapsed: (v: boolean) => void;
   setLocale: (l: Locale) => void;
   setLayoutMode: (m: LayoutMode) => void;
+  /** Dynamically update the models list for an agent (used for Ollama fetch). */
+  updateAgentModels: (agentId: string, models: Array<{ id: string; label: string }>) => void;
 };
 
 function patchTask(tasks: Task[], id: string, patch: Partial<Task> | ((t: Task) => Partial<Task>)): Task[] {
@@ -452,6 +455,10 @@ export const useStore = create<State>()(
       setSidebarCollapsed: (v) => set({ sidebarCollapsed: v }),
       setLocale: (l) => set({ locale: l }),
       setLayoutMode: (m) => set({ layoutMode: m }),
+      updateAgentModels: (agentId, models) =>
+        set((s) => ({
+          agents: s.agents.map((a) => (a.id === agentId ? { ...a, models } : a)),
+        })),
     }),
     {
       // Legacy key from the old "HTML Everything" brand; do NOT rename — every

@@ -636,6 +636,7 @@ const en: Dict = {
   "template.scenario.education": "Education",
   "template.scenario.creator": "Creator",
   "template.scenario.video": "Video",
+  "settings.agent.binPath.ollama": "Ollama API URL (e.g. http://192.168.1.100:11434)",
 };
 
 const zhCN: Dict = {
@@ -702,6 +703,7 @@ const zhCN: Dict = {
   "agent.customBin.hint": "如果自动检测找错了 binary（比如 Windows Scoop / 自定义安装），在这里填绝对路径。留空走自动检测。",
   "agent.customBin.save": "保存",
   "agent.customBin.clear": "清除",
+  "settings.agent.binPath.ollama": "Ollama API 位址 (例如 http://192.168.1.100:11434)",
   "protocol.stdin": "stdin · stream",
   "protocol.argv": "positional argv",
   "protocol.argvMessage": "argv · 整段 JSON",
@@ -1011,6 +1013,7 @@ const zhTW: Dict = {
   "agent.customBin.hint": "若自動偵測抓錯了執行檔（例如 Windows Scoop / 自定義安裝），請在此填入絕對路徑。留空則使用自動偵測。",
   "agent.customBin.save": "儲存",
   "agent.customBin.clear": "清除",
+  "settings.agent.binPath.ollama": "Ollama API 位址 (例如 http://192.168.1.100:11434)",
   "protocol.stdin": "stdin · 串流",
   "protocol.argv": "positional argv",
   "protocol.argvMessage": "argv · 整段 JSON",

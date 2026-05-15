@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
     editFromHtml,
     editFromContent,
   } = body;
+  console.log("[DEBUG] API /api/convert received:", { agent, templateId, format, binOverride });
   if (!agent || !templateId || !content) {
     return new Response("missing required fields: agent, templateId, content", {
       status: 400,
@@ -138,6 +139,7 @@ export async function POST(req: NextRequest) {
           send(value.type, value);
         }
       } catch (err) {
+        console.error("[CRITICAL] Stream execution failed:", err);
         send("error", {
           message: err instanceof Error ? err.message : String(err),
         });
