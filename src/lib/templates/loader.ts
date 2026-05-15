@@ -190,10 +190,13 @@ function fmToMeta(id: string, fm: SkillFrontmatter, hasHtml: boolean, hasMd: boo
 
 // ─── public surface ──────────────────────────────────────────────────
 
-// Cache the metadata listing in production; bypass in dev so new skill
-// folders show up without restarting `next dev`.
+// Cache the metadata listing. In dev mode we use a short TTL (10 s) so new
+// skill folders show up without restarting `next dev`, while avoiding the
+// repeated synchronous disk scans that hammer the event-loop when HMR
+// WebSocket reconnections trigger rapid re-requests from LAN IP clients.
 let metaCache: SkillMeta[] | null = null;
-const isDev = process.env.NODE_ENV !== "production";
+let metaCacheAt = 0;
+const META_CACHE_TTL_MS = process.env.NODE_ENV === "production" ? Infinity : 10_000;
 
 function isValidId(id: string): boolean {
   return /^[a-z0-9][a-z0-9-]*$/i.test(id);
@@ -201,7 +204,8 @@ function isValidId(id: string): boolean {
 
 /** Return picker-ready metadata for every skill folder on disk. */
 export function listSkills(): SkillMeta[] {
-  if (!isDev && metaCache) return metaCache;
+  const now = Date.now();
+  if (metaCache && now - metaCacheAt < META_CACHE_TTL_MS) return metaCache;
   const out: SkillMeta[] = [];
   let dirents: fs.Dirent[] = [];
   try {
@@ -222,6 +226,7 @@ export function listSkills(): SkillMeta[] {
     out.push(fmToMeta(id, fm, hasHtml, hasMd));
   }
   metaCache = out;
+  metaCacheAt = now;
   return out;
 }
 

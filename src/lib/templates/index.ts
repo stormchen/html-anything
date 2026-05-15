@@ -22,45 +22,53 @@ export type TemplateExampleMeta = SkillExampleMeta;
 // endpoint is overkill — this is ~25 lines and behaves the same.
 let cache: TemplateDef[] | null = null;
 let inflight: Promise<TemplateDef[]> | null = null;
-type Listener = (v: TemplateDef[]) => void;
-const listeners = new Set<Listener>();
 
 async function fetchTemplates(): Promise<TemplateDef[]> {
   if (cache) return cache;
   if (inflight) return inflight;
-  inflight = (async () => {
-    const res = await fetch("/api/templates");
-    if (!res.ok) throw new Error(`GET /api/templates → ${res.status}`);
-    const json = (await res.json()) as { templates: TemplateDef[] };
-    cache = json.templates;
-    for (const l of listeners) l(cache);
-    return cache;
-  })();
-  try {
-    return await inflight;
-  } finally {
-    inflight = null;
-  }
+  
+  inflight = fetch("/api/templates")
+    .then((res) => {
+      if (!res.ok) throw new Error(`GET /api/templates → ${res.status}`);
+      return res.json();
+    })
+    .then((json: { templates: TemplateDef[] }) => {
+      cache = json.templates;
+      return cache;
+    })
+    .finally(() => {
+      inflight = null;
+    });
+
+  return inflight;
 }
 
 /** Returns the registry. `undefined` while loading; never throws. */
 export function useTemplates(): TemplateDef[] | undefined {
   const [data, setData] = useState<TemplateDef[] | undefined>(cache ?? undefined);
+  
   useEffect(() => {
     if (cache) {
       setData(cache);
       return;
     }
-    const listener = (v: TemplateDef[]) => setData(v);
-    listeners.add(listener);
-    fetchTemplates().catch(() => {
-      // surface as empty — picker shows "no matches", caller can decide
-      setData([]);
-    });
+    
+    let isMounted = true;
+    
+    fetchTemplates()
+      .then((v) => {
+        if (isMounted) setData(v);
+      })
+      .catch(() => {
+        // surface as empty — picker shows "no matches", caller can decide
+        if (isMounted) setData([]);
+      });
+      
     return () => {
-      listeners.delete(listener);
+      isMounted = false;
     };
   }, []);
+  
   return data;
 }
 

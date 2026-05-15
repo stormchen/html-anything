@@ -276,6 +276,12 @@ function patchTask(tasks: Task[], id: string, patch: Partial<Task> | ((t: Task) 
   return changed ? next : tasks;
 }
 
+// Read env-var defaults (set in .env.local) so the app works out-of-the-box
+// without the user needing to open Settings manually.
+const ENV_OLLAMA_URL = process.env.NEXT_PUBLIC_OLLAMA_URL?.trim() || "";
+const ENV_OLLAMA_MODEL = process.env.NEXT_PUBLIC_OLLAMA_MODEL?.trim() || "";
+const ENV_DEFAULT_AGENT = process.env.NEXT_PUBLIC_DEFAULT_AGENT?.trim() || "";
+
 const initialTask = makeTask({ name: "任务 1" });
 
 export const useStore = create<State>()(
@@ -284,9 +290,9 @@ export const useStore = create<State>()(
       tasks: [initialTask],
       activeTaskId: initialTask.id,
       agents: [],
-      selectedAgent: undefined,
-      agentModels: {},
-      agentBinOverrides: {},
+      selectedAgent: ENV_DEFAULT_AGENT || undefined,
+      agentModels: ENV_OLLAMA_MODEL ? { ollama: ENV_OLLAMA_MODEL } : {},
+      agentBinOverrides: ENV_OLLAMA_URL ? { ollama: ENV_OLLAMA_URL } : {},
       welcomeAck: false,
       sidebarCollapsed: false,
       locale: "en",
@@ -480,6 +486,27 @@ export const useStore = create<State>()(
         locale: s.locale,
         layoutMode: s.layoutMode,
       }),
+      // Custom merge: when restoring from localStorage, fill in env-var
+      // defaults for any Ollama settings that were never saved by the user.
+      merge: (persisted, current) => {
+        const p = persisted as Partial<State>;
+        return {
+          ...current,
+          ...p,
+          // If localStorage has no ollama URL override, apply the env var
+          agentBinOverrides: {
+            ...(ENV_OLLAMA_URL ? { ollama: ENV_OLLAMA_URL } : {}),
+            ...(p.agentBinOverrides ?? {}),
+          },
+          // If localStorage has no ollama model, apply the env var
+          agentModels: {
+            ...(ENV_OLLAMA_MODEL ? { ollama: ENV_OLLAMA_MODEL } : {}),
+            ...(p.agentModels ?? {}),
+          },
+          // If localStorage has no selected agent, apply the env var
+          selectedAgent: (p.selectedAgent ?? ENV_DEFAULT_AGENT) || undefined,
+        };
+      },
       migrate: (persisted, fromVersion): Persisted => {
         // v1 → v2: wrap top-level content/format/filename/selectedTemplate into a single task.
         if (fromVersion < 2 && persisted && typeof persisted === "object") {
@@ -552,9 +579,18 @@ export const useStore = create<State>()(
 
 /** Returns true once the persist middleware has finished restoring state. */
 export function usePersistHydrated(): boolean {
-  const [hydrated, setHydrated] = useState(false);
+  // Initialize directly from the current hydration state — if persist has
+  // already completed before this component mounts (common when connecting
+  // via a LAN IP where React's render timing differs slightly), the
+  // onFinishHydration callback will never fire and the state would be stuck
+  // at false forever, showing "Restoring last content..." indefinitely.
+  const [hydrated, setHydrated] = useState(() => useStore.persist.hasHydrated());
   useEffect(() => {
-    setHydrated(useStore.persist.hasHydrated());
+    // Double-check in case hydration completed between render and effect.
+    if (useStore.persist.hasHydrated()) {
+      setHydrated(true);
+      return;
+    }
     const unsub = useStore.persist.onFinishHydration(() => setHydrated(true));
     return unsub;
   }, []);
