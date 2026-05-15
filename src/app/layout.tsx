@@ -47,6 +47,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      translate="no"
       className={`${inter.variable} ${interTight.variable} ${playfair.variable} ${mono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
