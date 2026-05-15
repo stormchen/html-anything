@@ -23,9 +23,7 @@ export function ConvertChip() {
   const { run, cancel } = useConvert();
   const t = useT();
 
-  // Only show in split mode — when only one pane is visible there's no
-  // divider to hang off, and the toolbar button is already obvious.
-  if (layoutMode !== "split") return null;
+
 
   const agentInfo = agents.find((a) => a.id === agent);
   const model = agent ? agentModels[agent] ?? "default" : "default";
@@ -65,6 +63,10 @@ export function ConvertChip() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClick, isRunning, canConvert]);
+
+  // Only show in split mode — when only one pane is visible there's no
+  // divider to hang off, and the toolbar button is already obvious.
+  if (layoutMode !== "split") return null;
 
   return (
     <div
