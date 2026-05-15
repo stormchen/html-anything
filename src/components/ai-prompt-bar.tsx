@@ -99,7 +99,7 @@ export function AiPromptBar() {
           }}
           title={t("aiPrompt.hint")}
         >
-          {isRunning ? t("aiPrompt.stop") : t("aiPrompt.submit")}
+          <span>{isRunning ? t("aiPrompt.stop") : t("aiPrompt.submit")}</span>
           <span className="ml-1.5 hidden text-[10px] opacity-60 sm:inline">⌘↵</span>
         </button>
       </div>

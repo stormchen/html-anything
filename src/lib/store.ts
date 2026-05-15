@@ -141,13 +141,14 @@ function makeTask(init?: Partial<Task>): Task {
 // Shipped locales. Adding a new one means dropping a dictionary into
 // `src/lib/i18n/locales/` and registering it in `src/lib/i18n.ts`.
 // We ship only en + zh-CN today and leave the rest to contributors.
-export type Locale = "en" | "zh-CN";
+export type Locale = "en" | "zh-CN" | "zh-TW";
 
-export const LOCALES: Locale[] = ["en", "zh-CN"];
+export const LOCALES: Locale[] = ["en", "zh-CN", "zh-TW"];
 
 export const LOCALE_LABEL: Record<Locale, string> = {
   "en": "English",
   "zh-CN": "简体中文",
+  "zh-TW": "繁體中文",
 };
 
 /**

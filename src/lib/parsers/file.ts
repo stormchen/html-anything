@@ -1,6 +1,7 @@
 "use client";
 
 import * as XLSX from "xlsx";
+import { parsePdf } from "./pdf";
 
 export type FileParseResult = {
   filename: string;
@@ -17,6 +18,7 @@ const TEXT_EXTS = new Set([
 ]);
 const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp"]);
 const SHEET_EXTS = new Set(["xlsx", "xls", "ods", "xlsm"]);
+const PDF_EXTS = new Set(["pdf"]);
 
 function ext(name: string): string {
   const i = name.lastIndexOf(".");
@@ -25,6 +27,16 @@ function ext(name: string): string {
 
 export async function parseFile(file: File): Promise<FileParseResult> {
   const e = ext(file.name);
+
+  if (PDF_EXTS.has(e)) {
+    const buf = await file.arrayBuffer();
+    const text = await parsePdf(buf);
+    return {
+      filename: file.name,
+      format: "pdf",
+      text,
+    };
+  }
 
   if (SHEET_EXTS.has(e)) {
     const buf = await file.arrayBuffer();

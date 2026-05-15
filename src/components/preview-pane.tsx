@@ -384,7 +384,10 @@ function StatusPill({ status }: { status: string }) {
       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium"
       style={{ background: c.bg, color: c.fg }}
     >
-      {c.dot && <span className="pulse-dot" />}
+      <span 
+        className="pulse-dot" 
+        style={{ display: c.dot ? "inline-block" : "none" }} 
+      />
       {t(STATUS_KEY[status] ?? "preview.status.idle")}
     </span>
   );
