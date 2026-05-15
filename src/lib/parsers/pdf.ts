@@ -9,14 +9,14 @@ export async function parsePdf(buffer: ArrayBuffer): Promise<string> {
   try {
     const pdfjs = await import("pdfjs-dist");
     
-    // Use the official CDN for the worker, matching the local version
-    const workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-    pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
-    console.log("Using worker from:", workerSrc);
+    // 使用本地 Worker（放在 public/pdf.worker.min.mjs），不依賴外部 CDN
+    // 這樣在局域網路或無外網的環境下也能正常解析 PDF
+    pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+    console.log("Using local worker: /pdf.worker.min.mjs");
 
     const loadingTask = pdfjs.getDocument({ 
       data: buffer,
-      useWorkerFetch: true,
+      useWorkerFetch: false,
       isEvalSupported: false,
     });
     
