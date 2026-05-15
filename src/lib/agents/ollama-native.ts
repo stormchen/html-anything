@@ -68,9 +68,9 @@ export function invokeOllamaNative(opts: {
 
         const decoder = new TextDecoder();
         let buffer = "";
-        let isInsideMarkdown = false;
+        let streamDone = false;
 
-        while (true) {
+        while (!streamDone) {
           const { done, value } = await reader.read();
           if (done) break;
 
@@ -88,19 +88,26 @@ export function invokeOllamaNative(opts: {
             if (isV1 && trimmed.startsWith("data: ")) {
               const dataStr = trimmed.slice(6);
               if (dataStr === "[DONE]") {
-                safeEnqueue({ type: "done", code: 0 });
-                continue;
+                // 收到串流結束信號，立刻離開迴圈
+                streamDone = true;
+                break;
               }
               try {
                 const json = JSON.parse(dataStr);
                 delta = json.choices?.[0]?.delta?.content || "";
+                // finish_reason = stop 也代表結束
+                if (json.choices?.[0]?.finish_reason === "stop") {
+                  streamDone = true;
+                }
               } catch (e) {}
             } else {
               // Handle Ollama format
               try {
                 const json = JSON.parse(trimmed);
                 delta = json.response || "";
-                if (json.done) safeEnqueue({ type: "done", code: 0 });
+                if (json.done) {
+                  streamDone = true;
+                }
               } catch (e) {}
             }
 
@@ -111,8 +118,13 @@ export function invokeOllamaNative(opts: {
               }
               safeEnqueue({ type: "delta", text: delta });
             }
+
+            if (streamDone) break;
           }
         }
+
+        // 取消讀取（若 MLX-VLM 沒有主動關閉連線）
+        try { reader.cancel(); } catch {}
 
         // Flush any remaining buffered line that didn't end with \n
         if (buffer.trim()) {
@@ -138,12 +150,7 @@ export function invokeOllamaNative(opts: {
           }
         }
 
-        // Debug: log first 300 chars of accumulated output to diagnose rendering issues
-        console.log("[AI Debug] Stream ended. Checking accumulated output via store is not feasible here.");
-        console.log("[AI Debug] If preview is blank, check that the HTML starts with '<' or '<!DOCTYPE'.");
-
-        // Always send "done" when the stream naturally finishes (even if
-        // [DONE] was never seen — MLX-VLM closes the connection cleanly).
+        // 統一在這裡送出 done，不在迴圈內送
         safeEnqueue({ type: "done", code: 0 });
       } catch (err: any) {
         if (err.name === "AbortError") return;
