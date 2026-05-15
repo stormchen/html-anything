@@ -52,9 +52,33 @@ export function SettingsModal({ onClose, initialSection = "agent" }: Props) {
   const [section, setSection] = useState<SectionId>(initialSection);
   const t = useT();
 
+  const handleClose = () => {
+    const s = useStore.getState();
+    const updates: Record<string, string> = {};
+    if (s.selectedAgent) {
+      updates.NEXT_PUBLIC_DEFAULT_AGENT = s.selectedAgent;
+    }
+    const ollamaUrl = s.agentBinOverrides["ollama"];
+    if (ollamaUrl !== undefined) {
+      updates.NEXT_PUBLIC_OLLAMA_URL = ollamaUrl;
+    }
+    const ollamaModel = s.agentModels["ollama"];
+    if (ollamaModel !== undefined) {
+      updates.NEXT_PUBLIC_OLLAMA_MODEL = ollamaModel;
+    }
+    if (Object.keys(updates).length > 0) {
+      fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      }).catch((e) => console.warn("[Config] Failed to save to .env.local:", e));
+    }
+    onClose();
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") handleClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -65,7 +89,7 @@ export function SettingsModal({ onClose, initialSection = "agent" }: Props) {
       className="fixed inset-0 z-50 flex items-center justify-center od-backdrop"
       style={{ background: "rgba(21, 20, 15, 0.45)", backdropFilter: "blur(6px)" }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) handleClose();
       }}
     >
       <div
@@ -88,7 +112,7 @@ export function SettingsModal({ onClose, initialSection = "agent" }: Props) {
             </h2>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="grid h-8 w-8 place-items-center rounded-full text-[var(--ink-mute)] hover:bg-[var(--line-faint)] hover:text-[var(--ink)] transition-colors"
             title={t("settings.close")}
           >
@@ -133,7 +157,7 @@ export function SettingsModal({ onClose, initialSection = "agent" }: Props) {
           className="flex items-center justify-end gap-2 px-6 py-4"
           style={{ borderTop: "1px solid var(--line-faint)", background: "var(--paper)" }}
         >
-          <button onClick={onClose} className="btn-primary">
+          <button onClick={handleClose} className="btn-primary">
             {t("settings.done")}
           </button>
         </div>
@@ -156,9 +180,36 @@ function AgentSection() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  /** 從 .env.local 讀取設定並同步到 store（用於反映最新的 env 值至 UI） */
+  const syncFromEnv = async () => {
+    try {
+      const res = await fetch("/api/config");
+      if (!res.ok) return;
+      const data = await res.json();
+      const currentOverrides = useStore.getState().agentBinOverrides;
+
+      if (data.NEXT_PUBLIC_OLLAMA_MODEL) {
+        // .env.local 有設定就以它為準，確保 UI 正確標示
+        setAgentModel("ollama", data.NEXT_PUBLIC_OLLAMA_MODEL);
+      }
+
+      if (data.NEXT_PUBLIC_OLLAMA_URL && !currentOverrides["ollama"]) {
+        setAgentBinOverride("ollama", data.NEXT_PUBLIC_OLLAMA_URL);
+      }
+
+      if (data.NEXT_PUBLIC_DEFAULT_AGENT && !useStore.getState().selectedAgent) {
+        setSelectedAgent(data.NEXT_PUBLIC_DEFAULT_AGENT);
+      }
+    } catch (e) {
+      // silent
+    }
+  };
+
   const load = async () => {
     setLoading(true);
     setErr(null);
+    // 同步 .env.local → store，讓 UI 正確標示當前儲存的模型
+    await syncFromEnv();
     try {
       const res = await fetch("/api/agents", { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -234,7 +285,9 @@ function AgentSection() {
         <ModelPicker
           agent={selectedAgent}
           modelId={selectedModelId}
-          onPick={(id) => setAgentModel(selectedAgent.id, id)}
+          onPick={(id) => {
+            setAgentModel(selectedAgent.id, id);
+          }}
         />
       )}
 
@@ -242,7 +295,11 @@ function AgentSection() {
         <CustomBinPath
           agent={selectedAgent}
           value={agentBinOverrides[selectedAgent.id] ?? ""}
-          onChange={(p) => setAgentBinOverride(selectedAgent.id, p)}
+          onChange={(p) => {
+            setAgentBinOverride(selectedAgent.id, p);
+            // 注意：不在這裡寫入 .env.local，避免 Next.js hot reload
+            // 中斷模型查詢。URL 會在選擇模型時一起存入。
+          }}
         />
       )}
 

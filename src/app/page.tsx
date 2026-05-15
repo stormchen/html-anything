@@ -15,6 +15,9 @@ export default function Home() {
   const welcomeAck = useStore((s) => s.welcomeAck);
   const selectedAgent = useStore((s) => s.selectedAgent);
   const setAgents = useStore((s) => s.setAgents);
+  const setAgentModel = useStore((s) => s.setAgentModel);
+  const setAgentBinOverride = useStore((s) => s.setAgentBinOverride);
+  const setSelectedAgent = useStore((s) => s.setSelectedAgent);
   const locale = useStore((s) => s.locale);
   const layoutMode = useStore((s) => s.layoutMode);
   const [welcomeOpen, setWelcomeOpen] = useState(false);
@@ -34,6 +37,25 @@ export default function Home() {
     if (!hydrated) return;
     let cancelled = false;
     (async () => {
+      // ── 1. 同步 .env.local → store（確保模型選擇在重整後仍正確標示）──
+      try {
+        const cfg = await fetch("/api/config");
+        if (cfg.ok && !cancelled) {
+          const env = await cfg.json();
+          if (env.NEXT_PUBLIC_OLLAMA_MODEL) {
+            setAgentModel("ollama", env.NEXT_PUBLIC_OLLAMA_MODEL);
+          }
+          if (env.NEXT_PUBLIC_OLLAMA_URL) {
+            setAgentBinOverride("ollama", env.NEXT_PUBLIC_OLLAMA_URL);
+          }
+          if (env.NEXT_PUBLIC_DEFAULT_AGENT && !useStore.getState().selectedAgent) {
+            setSelectedAgent(env.NEXT_PUBLIC_DEFAULT_AGENT);
+          }
+        }
+      } catch {
+        // silent — store already has localStorage fallback
+      }
+      // ── 2. 偵測已安裝的 agents ──
       try {
         const res = await fetch("/api/agents", { cache: "no-store" });
         if (!res.ok) return;
@@ -46,7 +68,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [hydrated, setAgents]);
+  }, [hydrated, setAgents, setAgentModel, setAgentBinOverride, setSelectedAgent]);
 
   // Keep <html lang="…"> in sync with the user's locale so screen readers
   // and browser features (autotranslate, hyphenation) pick the right language.

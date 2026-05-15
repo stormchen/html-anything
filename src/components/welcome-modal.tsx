@@ -101,6 +101,19 @@ export function WelcomeModal({ onClose }: Props) {
   const load = async () => {
     setLoading(true);
     setErr(null);
+    // 先同步 .env.local 的設定到 store，確保模型標示正確
+    try {
+      const cfg = await fetch("/api/config");
+      if (cfg.ok) {
+        const data = await cfg.json();
+        if (data.NEXT_PUBLIC_OLLAMA_MODEL) {
+          setAgentModel("ollama", data.NEXT_PUBLIC_OLLAMA_MODEL);
+        }
+        if (data.NEXT_PUBLIC_OLLAMA_URL) {
+          // agentBinOverrides is set separately but needs setAgentBinOverride - skip here, handled by store init
+        }
+      }
+    } catch (_) { /* silent */ }
     try {
       const res = await fetch("/api/agents", { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -131,6 +144,29 @@ export function WelcomeModal({ onClose }: Props) {
   const confirm = () => {
     if (!canEnter) return;
     setWelcomeAck(true);
+    
+    // Save defaults to .env.local on exit
+    const s = useStore.getState();
+    const updates: Record<string, string> = {};
+    if (s.selectedAgent) {
+      updates.NEXT_PUBLIC_DEFAULT_AGENT = s.selectedAgent;
+    }
+    const ollamaUrl = s.agentBinOverrides["ollama"];
+    if (ollamaUrl !== undefined) {
+      updates.NEXT_PUBLIC_OLLAMA_URL = ollamaUrl;
+    }
+    const ollamaModel = s.agentModels["ollama"];
+    if (ollamaModel !== undefined) {
+      updates.NEXT_PUBLIC_OLLAMA_MODEL = ollamaModel;
+    }
+    if (Object.keys(updates).length > 0) {
+      fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      }).catch((e) => console.warn("[Config] Failed to save to .env.local:", e));
+    }
+
     onClose();
   };
 
