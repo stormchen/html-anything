@@ -3,8 +3,6 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useStore, selectActiveTask } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { copyToWechat } from "@/lib/export/wechat";
-import { copyToZhihu } from "@/lib/export/zhihu";
 import { copyHtml, copyText } from "@/lib/export/clipboard";
 import {
   copyIframeToClipboard,
@@ -71,16 +69,6 @@ export function ExportMenu({ iframeRef }: ExportMenuProps) {
     actions: Array<{ id: string; label: string; emoji: string; fn: () => Promise<void> }>;
   }> = [
     {
-      title: t("export.section.platform"),
-      actions: [
-        { id: "wechat", label: t("export.action.wechat"), emoji: "💬", fn: wrap(t("export.toast.wechat"), async () => { await copyToWechat(cleanHtml()); }) },
-        { id: "zhihu",  label: t("export.action.zhihu"),  emoji: "🦓", fn: wrap(t("export.toast.zhihu"), async () => { await copyToZhihu(cleanHtml()); }) },
-        { id: "twitter-img", label: t("export.action.twitterImg"), emoji: "🐦", fn: wrap(t("export.toast.image"), async () => {
-          if (!iframeRef.current) throw new Error(t("export.error.previewNotReady")); await copyIframeToClipboard(iframeRef.current);
-        }) },
-      ],
-    },
-    {
       title: t("export.section.raw"),
       actions: [
         { id: "html", label: t("export.action.html"), emoji: "</>", fn: wrap(t("export.toast.html"), async () => { await copyHtml(cleanHtml()); }) },
@@ -95,6 +83,9 @@ export function ExportMenu({ iframeRef }: ExportMenuProps) {
         { id: "download-html", label: t("export.action.downloadHtml"), emoji: "💾", fn: wrap(t("export.toast.htmlSaved"), async () => { downloadHtml(cleanHtml()); }) },
         { id: "download-png",  label: t("export.action.downloadPng"),  emoji: "🖼️", fn: wrap(t("export.toast.imgSaved"), async () => {
           if (!iframeRef.current) throw new Error(t("export.error.previewNotReady")); await downloadIframeAsImage(iframeRef.current);
+        }) },
+        { id: "twitter-img", label: t("export.action.twitterImg"), emoji: "🐦", fn: wrap(t("export.toast.image"), async () => {
+          if (!iframeRef.current) throw new Error(t("export.error.previewNotReady")); await copyIframeToClipboard(iframeRef.current);
         }) },
       ],
     },

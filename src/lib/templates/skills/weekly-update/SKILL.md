@@ -1,25 +1,25 @@
 ---
 name: weekly-update
-zh_name: "团队周报 Deck"
+zh_name: "团队週報 Deck"
 en_name: "Weekly Update Deck"
 emoji: "🗓️"
-description: "6-8 页横向滑动周报: 已发布 / 进行中 / 阻塞 / 指标 / 求助"
+description: "6-8 頁横向滑動週報: 已發布 / 進行中 / 阻塞 / 指標 / 求助"
 category: slides
 scenario: operations
 aspect_hint: "16:9 ×8"
 featured: 23
-tags: ["weekly", "周报", "status"]
+tags: ["weekly", "週報", "status"]
 ---
 
-【模板: 团队周报 Deck】
-【意图】6-8 页 horizontal-swipe slides, 周报固定结构。
+【模板: 团队週報 Deck】
+【意圖】6-8 頁 horizontal-swipe slides, 週報固定結构。
 【布局】
-- Cover (周次 + 团队 + 一句话主题)
+- Cover (周次 + 团队 + 一句話佈景主題)
 - Shipped (列表 + owner)
-- In flight (进度条)
+- In flight (進度条)
 - Blocked (红色 callout)
-- Metrics (KPI 卡片网格 + 周对比)
-- Asks (求助清单)
+- Metrics (KPI 卡片網格 + 周對比)
+- Asks (求助清單)
 - Thanks 收尾
-【设计细节】
+【設計細節】
 - 键盘左右切换, hash 同步

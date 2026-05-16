@@ -1,12 +1,12 @@
-# 故障标题帧 · SIGNAL_LOST
+# 故障標題帧 · SIGNAL_LOST
 
-> Cyan / magenta 像散, CRT 扫描线 + ASCII 噪点
+> Cyan / magenta 像散, CRT 扫描线 + ASCII 噪點
 
-## 标题
+## 標題
 SIGNAL_LOST
 
-## 副标
+## 副標
 04 · DATA CORRUPTION · 14:32:08
 
-## 章节标识
-CH-04 / SIGNAL CORRUPTED — 数据失真重组
+## 章節標識
+CH-04 / SIGNAL CORRUPTED — 數據失真重组

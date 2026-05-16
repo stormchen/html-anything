@@ -1,9 +1,9 @@
 ---
 name: deck-presenter-mode
-zh_name: "演讲者模式 Deck"
+zh_name: "演講者模式 Deck"
 en_name: "Presenter Mode Deck"
 emoji: "🎤"
-description: "tokyo-night 默认主题, T 切换 5 主题, S 打开提词器 popup"
+description: "tokyo-night 預設佈景主題, T 切换 5 佈景主題, S 打開提词器 popup"
 category: slides
 scenario: engineering
 aspect_hint: "16:9"
@@ -12,10 +12,10 @@ tags: ["presenter", "notes", "提词", "teleprompter"]
 ---
 
 【模板: Presenter Mode Deck】
-【意图】怕忘词的演讲者专用 deck, 含逐字稿 notes 与 popup teleprompter。
+【意圖】怕忘词的演講者专用 deck, 含逐字稿 notes 與 popup teleprompter。
 【布局】
-- 每页 + `<aside class="notes">` 150-300 字稿
-- 右下小 toolbar: T 切主题 / S 打开 popup
-- Popup: CURRENT / NEXT / SCRIPT / TIMER 四张磁吸卡
-【设计细节】
-- 默认 tokyo-night; 共 5 套主题 (含 light)
+- 每頁 + `<aside class="notes">` 150-300 字稿
+- 右下小 toolbar: T 切佈景主題 / S 打開 popup
+- Popup: CURRENT / NEXT / SCRIPT / TIMER 四張磁吸卡
+【設計細節】
+- 預設 tokyo-night; 共 5 套佈景主題 (含 light)

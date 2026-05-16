@@ -1,21 +1,21 @@
 ---
 name: digital-eguide
-zh_name: "电子指南"
+zh_name: "電子指南"
 en_name: "Digital E-Guide"
 emoji: "📚"
-description: "两页跨页电子指南, 封面 + 课程页 + pull-quote + 步骤列表"
+description: "兩頁跨頁電子指南, 封面 + 课程頁 + pull-quote + 步驟列表"
 category: article
 scenario: marketing
-aspect_hint: "双页预览"
+aspect_hint: "双頁預覽"
 featured: 6
 tags: ["eguide", "lookbook", "lead magnet", "playbook"]
 ---
 
-【模板: 电子指南双页预览】
-【意图】creator brand 的 lead-magnet 风格, 一封面一内页跨页排列。
+【模板: 電子指南双頁預覽】
+【意圖】creator brand 的 lead-magnet 風格, 一封面一內頁跨頁排列。
 【布局】
-- Page 1 封面: display title + 作者 + 'What's inside' 数据 + TOC teaser
-- Page 2 内页: lesson body + pull-quote + step list
-【设计细节】
-- lifestyle / creator brand 调子, 柔和米色
-- 两页 side-by-side 横向, 像翻开的书
+- Page 1 封面: display title + 作者 + 'What's inside' 數據 + TOC teaser
+- Page 2 內頁: lesson body + pull-quote + step list
+【設計細節】
+- lifestyle / creator brand 調子, 柔和米色
+- 兩頁 side-by-side 横向, 像翻開的書

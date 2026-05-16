@@ -16,8 +16,6 @@ export async function parsePdf(buffer: ArrayBuffer): Promise<string> {
 
     const loadingTask = pdfjs.getDocument({ 
       data: buffer,
-      useWorkerFetch: false,
-      isEvalSupported: false,
     });
     
     const pdf = await loadingTask.promise;

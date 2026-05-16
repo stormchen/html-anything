@@ -1,22 +1,22 @@
 ---
 name: docs-page
-zh_name: "技术文档页"
+zh_name: "技術文件頁"
 en_name: "Docs Page"
 emoji: "📘"
-description: "三栏文档页: 侧导航 + 正文 + 右 TOC"
+description: "三栏文件頁: 侧導航 + 正文 + 右 TOC"
 category: doc
 scenario: engineering
 aspect_hint: "桌面 1440"
 tags: ["docs", "api", "tutorial", "guide"]
 ---
 
-【模板: 技术文档页】
-【意图】API / 教程文档单页, 长读体验优先。
+【模板: 技術文件頁】
+【意圖】API / 教學文件單頁, 長讀體驗優先。
 【布局】
 - Inline-start nav (sections + sticky)
-- Article body (含代码块, callouts, 表格)
+- Article body (含程式碼區塊, callouts, 表格)
 - Inline-end TOC (sticky, scroll-spy)
-- 顶栏 search + version + 主题切换
-【设计细节】
-- 代码块: 圆角 + dark + 语言标签 + 复制按钮
+- 頂栏 search + version + 佈景主題切换
+【設計細節】
+- 程式碼區塊: 圓角 + dark + 語言標籤 + 複製按钮
 - callout: info / warn / danger 三色

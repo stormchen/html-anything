@@ -291,8 +291,8 @@ export const useStore = create<State>()(
       activeTaskId: initialTask.id,
       agents: [],
       selectedAgent: ENV_DEFAULT_AGENT || undefined,
-      agentModels: ENV_OLLAMA_MODEL ? { ollama: ENV_OLLAMA_MODEL } : {},
-      agentBinOverrides: ENV_OLLAMA_URL ? { ollama: ENV_OLLAMA_URL } : {},
+      agentModels: (ENV_OLLAMA_MODEL ? { ollama: ENV_OLLAMA_MODEL } : {}) as Record<string, string>,
+      agentBinOverrides: (ENV_OLLAMA_URL ? { ollama: ENV_OLLAMA_URL } : {}) as Record<string, string>,
       welcomeAck: false,
       sidebarCollapsed: false,
       locale: "en",
@@ -579,18 +579,14 @@ export const useStore = create<State>()(
 
 /** Returns true once the persist middleware has finished restoring state. */
 export function usePersistHydrated(): boolean {
-  // Initialize directly from the current hydration state — if persist has
-  // already completed before this component mounts (common when connecting
-  // via a LAN IP where React's render timing differs slightly), the
-  // onFinishHydration callback will never fire and the state would be stuck
-  // at false forever, showing "Restoring last content..." indefinitely.
-  const [hydrated, setHydrated] = useState(() => useStore.persist.hasHydrated());
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    // Double-check in case hydration completed between render and effect.
+    // Check hydration state once on mount. If already hydrated, update state immediately.
     if (useStore.persist.hasHydrated()) {
       setHydrated(true);
       return;
     }
+    // Otherwise listen for the finish event.
     const unsub = useStore.persist.onFinishHydration(() => setHydrated(true));
     return unsub;
   }, []);

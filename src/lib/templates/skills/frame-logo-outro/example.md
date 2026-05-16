@@ -1,6 +1,6 @@
 # Logo 收尾帧
 
-> Midnight Indigo 调色, 用作视频结尾的品牌 reveal
+> Midnight Indigo 調色, 用作影片結尾的品牌 reveal
 
 ## 品牌
 HTML Anything

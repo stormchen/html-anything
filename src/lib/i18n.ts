@@ -226,12 +226,9 @@ export interface Dict {
 
   // Export menu
   "export.button": string;
-  "export.section.platform": string;
   "export.section.raw": string;
   "export.section.download": string;
   "export.section.deck": string;
-  "export.action.wechat": string;
-  "export.action.zhihu": string;
   "export.action.twitterImg": string;
   "export.action.html": string;
   "export.action.text": string;
@@ -240,8 +237,6 @@ export interface Dict {
   "export.action.deckPdf": string;
   "export.action.deckPngZip": string;
   "export.action.deckPptx": string;
-  "export.toast.wechat": string;
-  "export.toast.zhihu": string;
   "export.toast.image": string;
   "export.toast.html": string;
   "export.toast.text": string;
@@ -323,6 +318,7 @@ export interface Dict {
   "template.scenario.education": string;
   "template.scenario.creator": string;
   "template.scenario.video": string;
+  "settings.agent.binPath.ollama": string;
 }
 
 const en: Dict = {
@@ -490,7 +486,7 @@ const en: Dict = {
   "preview.placeholder.runningDescr":
     "First bytes land in a few seconds, then it streams. Waited {sec}s so far.",
   "preview.placeholder.idleDescr":
-    "Preview · view source · one-click copy for WeChat / Twitter / Zhihu · PNG export.",
+    "Preview · view source · one-click copy for Twitter · PNG export.",
   "preview.placeholder.chip.article": "📖 Article",
   "preview.placeholder.chip.deck": "🎬 Slide deck",
   "preview.placeholder.chip.resume": "📄 Resume",
@@ -541,12 +537,9 @@ const en: Dict = {
   "tasks.matchTooltip": "{a} / {b} match",
 
   "export.button": "⤓ Export / Copy ▾",
-  "export.section.platform": "Copy to platform",
   "export.section.raw": "Copy raw",
   "export.section.download": "Download",
   "export.section.deck": "Deck · {n} slides",
-  "export.action.wechat": "WeChat (公众号)",
-  "export.action.zhihu": "Zhihu",
   "export.action.twitterImg": "Twitter / Weibo (PNG)",
   "export.action.html": "HTML source",
   "export.action.text": "Plain text",
@@ -555,8 +548,6 @@ const en: Dict = {
   "export.action.deckPdf": "PDF · all slides (print)",
   "export.action.deckPngZip": "PNG · per-slide (.zip)",
   "export.action.deckPptx": ".pptx · PowerPoint",
-  "export.toast.wechat": "WeChat format copied",
-  "export.toast.zhihu": "Zhihu format copied",
   "export.toast.image": "Image copied",
   "export.toast.html": "HTML copied",
   "export.toast.text": "Text copied",
@@ -802,7 +793,7 @@ const zhCN: Dict = {
   "preview.placeholder.idleTitle.accent": "⚡",
   "preview.placeholder.idleTitle.part2": "转换",
   "preview.placeholder.runningDescr": "首字会在几秒内到达, 之后流式更新。当前已等 {sec}s。",
-  "preview.placeholder.idleDescr": "支持预览 / 查看源码 / 一键复制公众号·推特·知乎 / 截图导出 PNG。",
+  "preview.placeholder.idleDescr": "支持预览 / 查看源码 / 一键复制 Twitter / 截图导出 PNG。",
   "preview.placeholder.chip.article": "📖 文章",
   "preview.placeholder.chip.deck": "🎬 PPT",
   "preview.placeholder.chip.resume": "📄 简历",
@@ -853,12 +844,9 @@ const zhCN: Dict = {
   "tasks.matchTooltip": "{a} / {b} 匹配",
 
   "export.button": "⤓ 导出 / 复制 ▾",
-  "export.section.platform": "复制到平台",
   "export.section.raw": "复制原始内容",
   "export.section.download": "下载",
   "export.section.deck": "Deck · 共 {n} 页",
-  "export.action.wechat": "微信公众号",
-  "export.action.zhihu": "知乎",
   "export.action.twitterImg": "推特 / 微博 (PNG)",
   "export.action.html": "HTML 源码",
   "export.action.text": "纯文本",
@@ -867,8 +855,6 @@ const zhCN: Dict = {
   "export.action.deckPdf": "PDF · 全部幻灯片 (打印)",
   "export.action.deckPngZip": "PNG · 每页一张 (.zip)",
   "export.action.deckPptx": ".pptx · PowerPoint",
-  "export.toast.wechat": "已复制公众号格式",
-  "export.toast.zhihu": "已复制知乎格式",
   "export.toast.image": "已复制图片",
   "export.toast.html": "已复制 HTML",
   "export.toast.text": "已复制文本",
@@ -895,7 +881,7 @@ const zhCN: Dict = {
   "upload.loadedLog": "已加载 {name} ({fmt})",
   "upload.failedLog": "解析失败: {err}",
 
-  "formats.eyebrow": "格式示例",
+  "formats.eyebrow": "格式範例",
   "formats.subtitle":
     "一键载入每种输入格式的样例片段。先在顶部选模板, 点击「载入」, 再 ⌘+Enter — 由上方的模板决定输出样式。",
   "formats.loadButton": "✨ 载入 →",
@@ -1112,7 +1098,7 @@ const zhTW: Dict = {
   "preview.placeholder.idleTitle.accent": "⚡",
   "preview.placeholder.idleTitle.part2": "轉換",
   "preview.placeholder.runningDescr": "首個位元組將在幾秒內到達，隨後進行串流更新。已等待 {sec} 秒。",
-  "preview.placeholder.idleDescr": "支援預覽 / 查看原始碼 / 一鍵複製至公眾號、Twitter、知乎 / 截圖匯出 PNG。",
+  "preview.placeholder.idleDescr": "支援預覽 / 查看原始碼 / 一鍵複製 Twitter / 截圖匯出 PNG。",
   "preview.placeholder.chip.article": "📖 文章",
   "preview.placeholder.chip.deck": "🎬 投影片",
   "preview.placeholder.chip.resume": "📄 履歷",
@@ -1163,12 +1149,9 @@ const zhTW: Dict = {
   "tasks.matchTooltip": "{a} / {b} 符合",
 
   "export.button": "⤓ 匯出 / 複製 ▾",
-  "export.section.platform": "複製到平台",
   "export.section.raw": "複製原始內容",
   "export.section.download": "下載",
   "export.section.deck": "簡報 · 共 {n} 頁",
-  "export.action.wechat": "微信公眾號",
-  "export.action.zhihu": "知乎",
   "export.action.twitterImg": "Twitter / 微博 (PNG)",
   "export.action.html": "HTML 原始碼",
   "export.action.text": "純文字",
@@ -1177,8 +1160,6 @@ const zhTW: Dict = {
   "export.action.deckPdf": "PDF · 全部投影片 (列印)",
   "export.action.deckPngZip": "PNG · 每頁一張 (.zip)",
   "export.action.deckPptx": ".pptx · PowerPoint",
-  "export.toast.wechat": "已複製公眾號格式",
-  "export.toast.zhihu": "已複製知乎格式",
   "export.toast.image": "已複製圖片",
   "export.toast.html": "已複製 HTML",
   "export.toast.text": "已複製文字",

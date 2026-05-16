@@ -1,11 +1,11 @@
-# Replit Slides · World Mint 主题
+# Replit Slides · World Mint 佈景主題
 
-> 双页预览: Cover + Agenda
+> 双頁預覽: Cover + Agenda
 
-## 主题
-Replit Slides 八套主题之一 (helix / holm / vance / bevel / **world-mint** / atlas / bluehouse)
+## 佈景主題
+Replit Slides 八套佈景主題之一 (helix / holm / vance / bevel / **world-mint** / atlas / bluehouse)
 
-## Deck 标题
+## Deck 標題
 Building agents that ship at the edge
 
 ## Agenda
