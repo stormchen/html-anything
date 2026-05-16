@@ -16,15 +16,6 @@ import {
   type DeployProviderId,
 } from "@/lib/deploy/constants";
 
-/**
- * Publish control rendered next to the preview-pane toolbar
- * actions. Renders three things in one rounded popover-anchor block:
- *
- *  1. The Publish / Deploying… / coral pill — primary CTA.
- *  2. A compact result line — "Live at <url> [Copy] [Open]".
- *  3. A "Past deployments" dropdown listing history.
- */
-
 const EMPTY_DEPLOYMENTS: DeploymentRecord[] = [];
 
 function selectDeployments(s: { tasks: Task[]; activeTaskId: string }): DeploymentRecord[] {
