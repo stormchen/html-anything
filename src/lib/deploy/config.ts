@@ -16,15 +16,19 @@ import path from "node:path";
  * sessions (claude, vercel, etc.) at similar trust level.
  */
 
-export const VERCEL_PROVIDER_ID = "vercel" as const;
-export const CLOUDFLARE_PAGES_PROVIDER_ID = "cloudflare-pages" as const;
+import {
+  VERCEL_PROVIDER_ID,
+  CLOUDFLARE_PAGES_PROVIDER_ID,
+  GITHUB_REPO_PROVIDER_ID,
+  type DeployProviderId,
+} from "./constants";
 
-export type DeployProviderId =
-  | typeof VERCEL_PROVIDER_ID
-  | typeof CLOUDFLARE_PAGES_PROVIDER_ID;
+export { VERCEL_PROVIDER_ID, CLOUDFLARE_PAGES_PROVIDER_ID, GITHUB_REPO_PROVIDER_ID };
+export type { DeployProviderId };
 
 export const SAVED_VERCEL_TOKEN_MASK = "saved-vercel-token";
 export const SAVED_CLOUDFLARE_TOKEN_MASK = "saved-cloudflare-token";
+export const SAVED_GITHUB_TOKEN_MASK = "saved-github-repo-token";
 
 /** Stored on-disk shape. Different providers populate different fields. */
 export type DeployConfig = {
@@ -37,6 +41,11 @@ export type DeployConfig = {
   /** Legacy: pre-computed Pages project name. New writes leave this empty
    *  and the deployer derives it per-task. */
   projectName?: string;
+  // GitHub Repo
+  repo?: string;      // owner/repo, e.g. "stormchen/blog"
+  branch?: string;    // target branch, default "main"
+  filePath?: string;  // path in repo, default "html-anything/index.html"
+  siteUrl?: string;   // Cloudflare Pages URL for the "Live at" link
 };
 
 /** Public-facing shape returned to the client. Token is masked. */
@@ -48,6 +57,10 @@ export type PublicDeployConfig = {
   teamSlug?: string;
   accountId?: string;
   projectName?: string;
+  repo?: string;
+  branch?: string;
+  filePath?: string;
+  siteUrl?: string;
   target: "preview";
 };
 
@@ -74,7 +87,9 @@ export function deployConfigPath(providerId: DeployProviderId): string {
   const file =
     providerId === CLOUDFLARE_PAGES_PROVIDER_ID
       ? "cloudflare-pages.json"
-      : "vercel.json";
+      : providerId === GITHUB_REPO_PROVIDER_ID
+        ? "github-repo.json"
+        : "vercel.json";
   return path.join(base, file);
 }
 
@@ -143,12 +158,32 @@ export async function readCloudflarePagesConfig(): Promise<DeployConfig> {
   }
 }
 
+export async function readGithubRepoConfig(): Promise<DeployConfig> {
+  try {
+    const raw = await fsp.readFile(
+      deployConfigPath(GITHUB_REPO_PROVIDER_ID),
+      "utf8",
+    );
+    const parsed = JSON.parse(raw) as Partial<DeployConfig>;
+    return {
+      token: typeof parsed.token === "string" ? parsed.token : "",
+      repo: typeof parsed.repo === "string" ? parsed.repo : "",
+      branch: typeof parsed.branch === "string" ? parsed.branch : "",
+      filePath: typeof parsed.filePath === "string" ? parsed.filePath : "",
+      siteUrl: typeof parsed.siteUrl === "string" ? parsed.siteUrl : "",
+    };
+  } catch (err) {
+    if (isEnoent(err)) return { token: "", repo: "", branch: "", filePath: "", siteUrl: "" };
+    throw err;
+  }
+}
+
 export async function readDeployConfig(
   providerId: DeployProviderId,
 ): Promise<DeployConfig> {
-  return providerId === CLOUDFLARE_PAGES_PROVIDER_ID
-    ? readCloudflarePagesConfig()
-    : readVercelConfig();
+  if (providerId === CLOUDFLARE_PAGES_PROVIDER_ID) return readCloudflarePagesConfig();
+  if (providerId === GITHUB_REPO_PROVIDER_ID) return readGithubRepoConfig();
+  return readVercelConfig();
 }
 
 export async function writeVercelConfig(
@@ -209,13 +244,38 @@ export async function writeCloudflarePagesConfig(
   return publicCloudflarePagesConfig(next);
 }
 
+export async function writeGithubRepoConfig(
+  input: Partial<DeployConfig>,
+): Promise<PublicDeployConfig> {
+  const current = await readGithubRepoConfig();
+  const tokenInput = typeof input?.token === "string" ? input.token.trim() : "";
+  const next: DeployConfig = {
+    token:
+      tokenInput && tokenInput !== SAVED_GITHUB_TOKEN_MASK
+        ? tokenInput
+        : current.token,
+    repo: typeof input?.repo === "string" ? input.repo.trim() : current.repo,
+    branch: typeof input?.branch === "string" ? input.branch.trim() : current.branch,
+    filePath: typeof input?.filePath === "string" ? input.filePath.trim() : current.filePath,
+    siteUrl: typeof input?.siteUrl === "string" ? input.siteUrl.trim() : current.siteUrl,
+  };
+  if (!next.token) {
+    throw new DeployError("GitHub Personal Access Token is required.", 400);
+  }
+  if (!next.repo) {
+    throw new DeployError("GitHub repository is required (format: owner/repo).", 400);
+  }
+  await writeDeployConfigFile(deployConfigPath(GITHUB_REPO_PROVIDER_ID), next);
+  return publicGithubRepoConfig(next);
+}
+
 export async function writeDeployConfig(
   providerId: DeployProviderId,
   input: Partial<DeployConfig> = {},
 ): Promise<PublicDeployConfig> {
-  return providerId === CLOUDFLARE_PAGES_PROVIDER_ID
-    ? writeCloudflarePagesConfig(input)
-    : writeVercelConfig(input);
+  if (providerId === CLOUDFLARE_PAGES_PROVIDER_ID) return writeCloudflarePagesConfig(input);
+  if (providerId === GITHUB_REPO_PROVIDER_ID) return writeGithubRepoConfig(input);
+  return writeVercelConfig(input);
 }
 
 export function publicVercelConfig(
@@ -244,17 +304,34 @@ export function publicCloudflarePagesConfig(
   };
 }
 
+export function publicGithubRepoConfig(
+  config: Partial<DeployConfig>,
+): PublicDeployConfig {
+  return {
+    providerId: GITHUB_REPO_PROVIDER_ID,
+    configured: Boolean(config.token && config.repo),
+    tokenMask: config.token ? SAVED_GITHUB_TOKEN_MASK : "",
+    repo: config.repo || "",
+    branch: config.branch || "",
+    filePath: config.filePath || "",
+    siteUrl: config.siteUrl || "",
+    target: "preview",
+  };
+}
+
 export function publicDeployConfigForProvider(
   providerId: DeployProviderId,
   config: Partial<DeployConfig> = {},
 ): PublicDeployConfig {
-  return providerId === CLOUDFLARE_PAGES_PROVIDER_ID
-    ? publicCloudflarePagesConfig(config)
-    : publicVercelConfig(config);
+  if (providerId === CLOUDFLARE_PAGES_PROVIDER_ID) return publicCloudflarePagesConfig(config);
+  if (providerId === GITHUB_REPO_PROVIDER_ID) return publicGithubRepoConfig(config);
+  return publicVercelConfig(config);
 }
 
 export function isDeployProviderId(value: unknown): value is DeployProviderId {
   return (
-    value === VERCEL_PROVIDER_ID || value === CLOUDFLARE_PAGES_PROVIDER_ID
+    value === VERCEL_PROVIDER_ID ||
+    value === CLOUDFLARE_PAGES_PROVIDER_ID ||
+    value === GITHUB_REPO_PROVIDER_ID
   );
 }

@@ -113,6 +113,22 @@ export interface Dict {
   "settings.deploy.vercel.tokenHint": string;
   "settings.deploy.vercel.teamSlugLabel": string;
   "settings.deploy.vercel.teamSlugPlaceholder": string;
+  "settings.deploy.cloudflare.title": string;
+  "settings.deploy.cloudflare.tokenLabel": string;
+  "settings.deploy.cloudflare.tokenPlaceholder": string;
+  "settings.deploy.cloudflare.accountIdLabel": string;
+  "settings.deploy.cloudflare.accountIdPlaceholder": string;
+  "settings.deploy.cloudflare.tokenHint": string;
+  "settings.deploy.githubRepo.title": string;
+  "settings.deploy.githubRepo.tokenLabel": string;
+  "settings.deploy.githubRepo.tokenPlaceholder": string;
+  "settings.deploy.githubRepo.tokenHint": string;
+  "settings.deploy.githubRepo.repoLabel": string;
+  "settings.deploy.githubRepo.repoPlaceholder": string;
+  "settings.deploy.githubRepo.branchLabel": string;
+  "settings.deploy.githubRepo.siteUrlLabel": string;
+  "settings.deploy.githubRepo.siteUrlPlaceholder": string;
+  "settings.deploy.githubRepo.siteUrlHint": string;
   "settings.deploy.save": string;
   "settings.deploy.clear": string;
   "settings.deploy.configured": string;
@@ -134,6 +150,7 @@ export interface Dict {
   "deploy.provider.vercel": string;
   "deploy.provider.cloudflarePages": string;
   "deploy.provider.cloudflarePages.comingSoon": string;
+  "deploy.provider.githubRepo": string;
   "deploy.menu.deployTo": string;
 
   // Editor pane
@@ -423,6 +440,25 @@ const en: Dict = {
     "Create a token at vercel.com/account/tokens. \"Full Account\" scope is enough.",
   "settings.deploy.vercel.teamSlugLabel": "Team slug (optional)",
   "settings.deploy.vercel.teamSlugPlaceholder": "my-team",
+  "settings.deploy.cloudflare.title": "Cloudflare Pages",
+  "settings.deploy.cloudflare.tokenLabel": "API token",
+  "settings.deploy.cloudflare.tokenPlaceholder": "cf_xxx…",
+  "settings.deploy.cloudflare.accountIdLabel": "Account ID",
+  "settings.deploy.cloudflare.accountIdPlaceholder": "Paste your Account ID here",
+  "settings.deploy.cloudflare.tokenHint":
+    "Create a token at dash.cloudflare.com with 'Cloudflare Pages: Edit' permission.",
+  "settings.deploy.githubRepo.title": "GitHub Repository",
+  "settings.deploy.githubRepo.tokenLabel": "Personal Access Token",
+  "settings.deploy.githubRepo.tokenPlaceholder": "ghp_xxx…",
+  "settings.deploy.githubRepo.tokenHint":
+    "Create a token at github.com/settings/tokens with the 'repo' (or 'contents') scope.",
+  "settings.deploy.githubRepo.repoLabel": "Repository (owner/repo)",
+  "settings.deploy.githubRepo.repoPlaceholder": "stormchen/blog",
+  "settings.deploy.githubRepo.branchLabel": "Branch (default: main)",
+  "settings.deploy.githubRepo.siteUrlLabel": "Live site URL (optional)",
+  "settings.deploy.githubRepo.siteUrlPlaceholder": "https://your-site.pages.dev",
+  "settings.deploy.githubRepo.siteUrlHint":
+    "Your Cloudflare Pages (or other) URL — shown as the \"Live at\" link after deploy.",
   "settings.deploy.save": "Save",
   "settings.deploy.clear": "Clear",
   "settings.deploy.configured": "Configured",
@@ -446,6 +482,7 @@ const en: Dict = {
   "deploy.provider.vercel": "Vercel",
   "deploy.provider.cloudflarePages": "Cloudflare Pages",
   "deploy.provider.cloudflarePages.comingSoon": "Coming soon",
+  "deploy.provider.githubRepo": "GitHub Repo",
   "deploy.menu.deployTo": "Deploy to…",
 
   "editor.tab.text": "✏️ Text",
@@ -732,6 +769,25 @@ const zhCN: Dict = {
     "去 vercel.com/account/tokens 创建一个 token，'Full Account' 范围即可。",
   "settings.deploy.vercel.teamSlugLabel": "Team slug（可选）",
   "settings.deploy.vercel.teamSlugPlaceholder": "my-team",
+  "settings.deploy.cloudflare.title": "Cloudflare Pages",
+  "settings.deploy.cloudflare.tokenLabel": "API Token",
+  "settings.deploy.cloudflare.tokenPlaceholder": "cf_xxx…",
+  "settings.deploy.cloudflare.accountIdLabel": "Account ID",
+  "settings.deploy.cloudflare.accountIdPlaceholder": "粘贴你的 Account ID",
+  "settings.deploy.cloudflare.tokenHint":
+    "在 dash.cloudflare.com 创建 Token，需要 'Cloudflare Pages: Edit' 权限。",
+  "settings.deploy.githubRepo.title": "GitHub 仓库",
+  "settings.deploy.githubRepo.tokenLabel": "Personal Access Token",
+  "settings.deploy.githubRepo.tokenPlaceholder": "ghp_xxx…",
+  "settings.deploy.githubRepo.tokenHint":
+    "在 github.com/settings/tokens 创建 token，勾选 'repo' 权限。",
+  "settings.deploy.githubRepo.repoLabel": "仓库 (owner/repo)",
+  "settings.deploy.githubRepo.repoPlaceholder": "stormchen/blog",
+  "settings.deploy.githubRepo.branchLabel": "分支 (默认: main)",
+  "settings.deploy.githubRepo.siteUrlLabel": "线上网址 (选填)",
+  "settings.deploy.githubRepo.siteUrlPlaceholder": "https://your-site.pages.dev",
+  "settings.deploy.githubRepo.siteUrlHint":
+    "你的 Cloudflare Pages 网址，部署后会显示在「已发布到」链接里。",
   "settings.deploy.save": "保存",
   "settings.deploy.clear": "清除",
   "settings.deploy.configured": "已配置",
@@ -755,6 +811,7 @@ const zhCN: Dict = {
   "deploy.provider.vercel": "Vercel",
   "deploy.provider.cloudflarePages": "Cloudflare Pages",
   "deploy.provider.cloudflarePages.comingSoon": "敬请期待",
+  "deploy.provider.githubRepo": "GitHub 仓库",
   "deploy.menu.deployTo": "部署到…",
 
   "editor.tab.text": "✏️ 输入",
@@ -1037,6 +1094,25 @@ const zhTW: Dict = {
     "請至 vercel.com/account/tokens 建立 token，權限選取 'Full Account' 即可。",
   "settings.deploy.vercel.teamSlugLabel": "團隊 ID (選填)",
   "settings.deploy.vercel.teamSlugPlaceholder": "my-team",
+  "settings.deploy.cloudflare.title": "Cloudflare Pages",
+  "settings.deploy.cloudflare.tokenLabel": "API Token",
+  "settings.deploy.cloudflare.tokenPlaceholder": "cf_xxx…",
+  "settings.deploy.cloudflare.accountIdLabel": "Account ID",
+  "settings.deploy.cloudflare.accountIdPlaceholder": "貼入您的 Account ID",
+  "settings.deploy.cloudflare.tokenHint":
+    "在 dash.cloudflare.com 建立 Token，需包含 'Cloudflare Pages: Edit' 權限。",
+  "settings.deploy.githubRepo.title": "GitHub 儲存庫",
+  "settings.deploy.githubRepo.tokenLabel": "Personal Access Token",
+  "settings.deploy.githubRepo.tokenPlaceholder": "ghp_xxx…",
+  "settings.deploy.githubRepo.tokenHint":
+    "在 github.com/settings/tokens 建立 token，勾選 'repo' 權限。",
+  "settings.deploy.githubRepo.repoLabel": "儲存庫 (owner/repo)",
+  "settings.deploy.githubRepo.repoPlaceholder": "stormchen/blog",
+  "settings.deploy.githubRepo.branchLabel": "分支 (預設: main)",
+  "settings.deploy.githubRepo.siteUrlLabel": "網站 URL (選填)",
+  "settings.deploy.githubRepo.siteUrlPlaceholder": "https://your-site.pages.dev",
+  "settings.deploy.githubRepo.siteUrlHint":
+    "你的 Cloudflare Pages 網址，部署後會顯示在「已發布至」連結中。",
   "settings.deploy.save": "儲存",
   "settings.deploy.clear": "清除",
   "settings.deploy.configured": "已設定",
@@ -1060,6 +1136,7 @@ const zhTW: Dict = {
   "deploy.provider.vercel": "Vercel",
   "deploy.provider.cloudflarePages": "Cloudflare Pages",
   "deploy.provider.cloudflarePages.comingSoon": "敬請期待",
+  "deploy.provider.githubRepo": "GitHub 儲存庫",
   "deploy.menu.deployTo": "部署至…",
 
   "editor.tab.text": "✏️ 輸入",

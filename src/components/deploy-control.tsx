@@ -9,36 +9,26 @@ import {
   type DeploymentRecord,
   type Task,
 } from "@/lib/store";
+import {
+  CLOUDFLARE_PAGES_PROVIDER_ID,
+  GITHUB_REPO_PROVIDER_ID,
+  VERCEL_PROVIDER_ID,
+  type DeployProviderId,
+} from "@/lib/deploy/constants";
 
 /**
- * Publish-to-Vercel control rendered next to the preview-pane toolbar
+ * Publish control rendered next to the preview-pane toolbar
  * actions. Renders three things in one rounded popover-anchor block:
  *
- *  1. The Publish / Deploying… / coral pill — primary CTA. Disabled when
- *     the task has no html yet.
- *  2. A compact result line — "Live at <url> [Copy] [Open]" — appearing
- *     immediately below the button after a successful deploy. Persists
- *     until the user navigates away from the task.
- *  3. A "Past deployments" dropdown listing the bounded ring (latest 5
- *     entries, hash-tagged so the user can tell which version of the html
- *     each url corresponds to).
- *
- * Cloudflare Pages provider is intentionally absent until the wasm-blake3
- * dependency lands in a follow-up PR — Settings → Deploy already shows a
- * "coming soon" placeholder for it.
+ *  1. The Publish / Deploying… / coral pill — primary CTA.
+ *  2. A compact result line — "Live at <url> [Copy] [Open]".
+ *  3. A "Past deployments" dropdown listing history.
  */
 
-// Stable fallback — module-level constant so the same reference is returned
-// every time there are no deployments. This prevents Zustand's
-// useSyncExternalStore from thinking the snapshot changed on every render.
 const EMPTY_DEPLOYMENTS: DeploymentRecord[] = [];
 
-// Defined outside the component so the reference is stable across renders,
-// preventing useSyncExternalStore from seeing a "new" snapshot each time.
 function selectDeployments(s: { tasks: Task[]; activeTaskId: string }): DeploymentRecord[] {
   const task = s.tasks.find((t) => t.id === s.activeTaskId);
-  // deployments is always initialised to [] in makeTask, so this path
-  // should only hit on very old persisted state that predates the field.
   return task?.deployments ?? EMPTY_DEPLOYMENTS;
 }
 
@@ -50,20 +40,23 @@ export function DeployControl() {
   const t = useT();
   const { status, error, latest, deploy } = useDeploy();
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [provider, setProvider] = useState<DeployProviderId>(GITHUB_REPO_PROVIDER_ID);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Close the history dropdown on outside click.
+  // Close the history/menu dropdowns on outside click.
   useEffect(() => {
-    if (!historyOpen) return;
+    if (!historyOpen && !menuOpen) return;
     const onClick = (e: MouseEvent) => {
       if (!popoverRef.current?.contains(e.target as Node)) {
         setHistoryOpen(false);
+        setMenuOpen(false);
       }
     };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
-  }, [historyOpen]);
+  }, [historyOpen, menuOpen]);
 
   // Auto-clear the "Copied" feedback after 1.5 s.
   useEffect(() => {
@@ -77,7 +70,7 @@ export function DeployControl() {
 
   const onClickPublish = () => {
     if (!canDeploy) return;
-    void deploy({ taskId, provider: "vercel", html });
+    void deploy({ taskId, provider, html });
   };
 
   const onCopy = async (url: string) => {
@@ -85,36 +78,98 @@ export function DeployControl() {
       await navigator.clipboard.writeText(url);
       setCopiedUrl(url);
     } catch {
-      /* clipboard may be denied — surface nothing, the URL is still visible */
+      /* clipboard may be denied */
     }
   };
 
-  // Newest record first; `latest` may be the same as `deployments[0]` so we
-  // dedupe by id to avoid rendering it twice in the result line + history.
   const visibleHistory = deployments.filter((d) => d.id !== latest?.id);
 
   return (
-    <div ref={popoverRef} className="relative inline-flex items-center gap-1.5">
-      <button
-        onClick={onClickPublish}
-        disabled={!canDeploy}
-        title={canDeploy ? undefined : t("deploy.button.disabled")}
-        className="rounded-full px-3 py-0.5 text-[11px] font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40"
-        style={{
-          background: isDeploying ? "var(--coral)" : "var(--ink)",
-          color: "#fff",
-          border: "1px solid transparent",
-        }}
-      >
-        {isDeploying ? (
-          <>
-            <span className="mr-1 inline-block h-2 w-2 animate-pulse rounded-full bg-white align-middle" />
-            {t("deploy.deploying")}
-          </>
-        ) : (
-          <>📤 {t("deploy.button")}</>
-        )}
-      </button>
+    <div ref={popoverRef} className="relative inline-flex items-center gap-1">
+      <div className="flex items-center">
+        <button
+          onClick={onClickPublish}
+          disabled={!canDeploy}
+          title={canDeploy ? undefined : t("deploy.button.disabled")}
+          className="rounded-l-full px-3 py-0.5 text-[11px] font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40"
+          style={{
+            background: isDeploying ? "var(--coral)" : "var(--ink)",
+            color: "#fff",
+            border: "1px solid transparent",
+            borderRight: "1px solid rgba(255,255,255,0.15)",
+          }}
+        >
+          {isDeploying ? (
+            <>
+              <span className="mr-1 inline-block h-2 w-2 animate-pulse rounded-full bg-white align-middle" />
+              {t("deploy.deploying")}
+            </>
+          ) : (
+            <>
+              {provider === "cloudflare-pages" ? "☁️ " : provider === "github-repo" ? "🐙 " : "📤 "}
+              {t("deploy.button")}
+            </>
+          )}
+        </button>
+        <button
+          onClick={() => setMenuOpen((o) => !o)}
+          disabled={isDeploying}
+          className="rounded-r-full px-1.5 py-0.5 text-[10px] transition-all disabled:opacity-40"
+          style={{
+            background: isDeploying ? "var(--coral)" : "var(--ink)",
+            color: "#fff",
+          }}
+        >
+          ▾
+        </button>
+      </div>
+
+      {menuOpen && (
+        <div
+          className="absolute right-0 top-[calc(100%+6px)] z-40 flex w-[160px] flex-col rounded-xl px-1 py-1 shadow-lg"
+          style={{
+            background: "var(--paper)",
+            border: "1px solid var(--line-soft)",
+          }}
+        >
+          <div className="px-2 py-1 text-[9px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">
+            {t("deploy.menu.deployTo")}
+          </div>
+          <button
+            onClick={() => {
+              setProvider(CLOUDFLARE_PAGES_PROVIDER_ID);
+              setMenuOpen(false);
+            }}
+            className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[11px] hover:bg-[var(--surface)] ${
+              provider === "cloudflare-pages" ? "text-[var(--coral)] font-medium" : "text-[var(--ink-soft)]"
+            }`}
+          >
+            ☁️ {t("deploy.provider.cloudflarePages")}
+          </button>
+          <button
+            onClick={() => {
+              setProvider(GITHUB_REPO_PROVIDER_ID);
+              setMenuOpen(false);
+            }}
+            className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[11px] hover:bg-[var(--surface)] ${
+              provider === "github-repo" ? "text-[var(--coral)] font-medium" : "text-[var(--ink-soft)]"
+            }`}
+          >
+            🐙 {t("deploy.provider.githubRepo")}
+          </button>
+          <button
+            onClick={() => {
+              setProvider(VERCEL_PROVIDER_ID);
+              setMenuOpen(false);
+            }}
+            className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[11px] hover:bg-[var(--surface)] ${
+              provider === "vercel" ? "text-[var(--coral)] font-medium" : "text-[var(--ink-soft)]"
+            }`}
+          >
+            📤 {t("deploy.provider.vercel")}
+          </button>
+        </div>
+      )}
 
       {deployments.length > 0 && (
         <button

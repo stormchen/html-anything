@@ -297,8 +297,6 @@ function AgentSection() {
           value={agentBinOverrides[selectedAgent.id] ?? ""}
           onChange={(p) => {
             setAgentBinOverride(selectedAgent.id, p);
-            // 注意：不在這裡寫入 .env.local，避免 Next.js hot reload
-            // 中斷模型查詢。URL 會在選擇模型時一起存入。
           }}
         />
       )}
@@ -657,8 +655,205 @@ function DeploySection() {
           {t("settings.deploy.subtitle")}
         </p>
       </div>
+      <GitHubRepoDeployConfig />
+      <CloudflareDeployConfig />
       <VercelDeployConfig />
-      <ComingSoonProvider />
+    </div>
+  );
+}
+
+function GitHubRepoDeployConfig() {
+  const t = useT();
+  const [token, setToken] = useState("");
+  const [repo, setRepo] = useState("");
+  const [branch, setBranch] = useState("");
+  const [siteUrl, setSiteUrl] = useState("");
+  const [configured, setConfigured] = useState(false);
+  const [tokenMask, setTokenMask] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = async () => {
+    try {
+      const res = await fetch("/api/deploy/config?provider=github-repo");
+      if (!res.ok) return;
+      const data = await res.json();
+      setConfigured(!!data.configured);
+      setTokenMask(data.tokenMask || "");
+      setToken(data.tokenMask || "");
+      setRepo(data.repo || "");
+      setBranch(data.branch || "");
+      setSiteUrl(data.siteUrl || "");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const onSave = async () => {
+    setLoading(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/deploy/config?provider=github-repo", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: token.trim(),
+          repo: repo.trim(),
+          branch: branch.trim(),
+          siteUrl: siteUrl.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      setConfigured(!!data.configured);
+      setTokenMask(data.tokenMask || "");
+      setToken(data.tokenMask || token);
+      setRepo(data.repo || "");
+      setBranch(data.branch || "");
+      setSiteUrl(data.siteUrl || "");
+      setSavedAt(Date.now());
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onClear = async () => {
+    if (!confirm("Clear GitHub config from ~/.html-anything?")) return;
+    setLoading(true);
+    setErr(null);
+    try {
+      await fetch("/api/deploy/config?provider=github-repo", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: "", repo: "" }),
+      });
+      setToken("");
+      setRepo("");
+      setBranch("");
+      setSiteUrl("");
+      setConfigured(false);
+      setTokenMask("");
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inputClass = "w-full rounded-lg px-3 py-1.5 font-mono text-[12px] outline-none mb-3";
+  const inputStyle = { background: "var(--surface)", border: "1px solid var(--line)", color: "var(--ink)" };
+  const labelClass = "block text-[11px] uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-1";
+
+  return (
+    <div
+      className="mb-3 rounded-2xl p-4"
+      style={{ background: "var(--paper)", border: "1px solid var(--line-faint)" }}
+    >
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div>
+          <div className="text-[13px] font-semibold text-[var(--ink)]">
+            {t("settings.deploy.githubRepo.title")}
+          </div>
+          {configured && (
+            <div className="text-[10.5px] text-[var(--green)] mt-0.5">
+              ● {t("settings.deploy.configured")}
+            </div>
+          )}
+        </div>
+        <a
+          href="https://github.com/settings/tokens"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="text-[10.5px] text-[var(--coral)] hover:underline shrink-0"
+        >
+          github.com/settings/tokens ↗
+        </a>
+      </div>
+
+      <label className={labelClass}>{t("settings.deploy.githubRepo.tokenLabel")}</label>
+      <input
+        type="text"
+        value={token}
+        onChange={(e) => setToken(e.target.value)}
+        placeholder={t("settings.deploy.githubRepo.tokenPlaceholder")}
+        className={inputClass}
+        style={inputStyle}
+      />
+
+      <label className={labelClass}>{t("settings.deploy.githubRepo.repoLabel")}</label>
+      <input
+        type="text"
+        value={repo}
+        onChange={(e) => setRepo(e.target.value)}
+        placeholder={t("settings.deploy.githubRepo.repoPlaceholder")}
+        className={inputClass}
+        style={inputStyle}
+      />
+
+      <label className={labelClass}>{t("settings.deploy.githubRepo.branchLabel")}</label>
+      <input
+        type="text"
+        value={branch}
+        onChange={(e) => setBranch(e.target.value)}
+        placeholder="main"
+        className={inputClass}
+        style={inputStyle}
+      />
+
+      <label className={labelClass}>{t("settings.deploy.githubRepo.siteUrlLabel")}</label>
+      <input
+        type="text"
+        value={siteUrl}
+        onChange={(e) => setSiteUrl(e.target.value)}
+        placeholder={t("settings.deploy.githubRepo.siteUrlPlaceholder")}
+        className={inputClass}
+        style={inputStyle}
+      />
+      <div className="text-[10.5px] text-[var(--ink-mute)] -mt-2 mb-3 leading-snug">
+        {t("settings.deploy.githubRepo.siteUrlHint")}
+      </div>
+
+      <div className="flex items-center gap-2 text-[10.5px] text-[var(--ink-mute)] mb-3 leading-snug">
+        {t("settings.deploy.githubRepo.tokenHint")}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onSave}
+          disabled={loading || !token.trim() || !repo.trim()}
+          className="rounded-lg px-3 py-1.5 text-[11px] font-medium disabled:opacity-40"
+          style={{ background: "var(--ink)", color: "var(--paper)" }}
+        >
+          {t("settings.deploy.save")}
+        </button>
+        {configured && (
+          <button
+            onClick={onClear}
+            disabled={loading}
+            className="rounded-lg px-2.5 py-1.5 text-[11px] text-[var(--ink-mute)] hover:bg-[var(--surface)] hover:text-[var(--coral)]"
+          >
+            {t("settings.deploy.clear")}
+          </button>
+        )}
+        {savedAt && (
+          <span className="text-[10.5px] text-[var(--green)]">
+            {t("settings.deploy.configured")}
+          </span>
+        )}
+      </div>
+      {err && (
+        <div className="mt-2 text-[11px]" style={{ color: "var(--red)" }}>
+          {err}
+        </div>
+      )}
     </div>
   );
 }
@@ -680,8 +875,6 @@ function VercelDeployConfig() {
       const data = await res.json();
       setConfigured(!!data.configured);
       setTokenMask(data.tokenMask || "");
-      // Show the mask as the input value when configured so the user sees
-      // something other than an empty box. They can replace it to update.
       setToken(data.tokenMask || "");
       setTeamSlug(data.teamSlug || "");
     } catch (e) {
@@ -722,19 +915,11 @@ function VercelDeployConfig() {
     setLoading(true);
     setErr(null);
     try {
-      // Empty token would re-throw on the server (token required); use a
-      // workaround by writing an empty token directly to disk via PUT —
-      // the server validates non-empty, so for now Clear == manual edit.
-      // We surface this by hitting PUT with an empty token and accepting
-      // the error, then resetting UI. See follow-up TODO in deploy/config.ts.
-      const res = await fetch("/api/deploy/config?provider=vercel", {
+      await fetch("/api/deploy/config?provider=vercel", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: "", teamSlug: "" }),
       });
-      // Even on 400 we want UI to reset locally; the file persists until the
-      // user provides a non-empty token to overwrite.
-      void res;
       setToken("");
       setTeamSlug("");
       setConfigured(false);
@@ -835,21 +1020,168 @@ function VercelDeployConfig() {
   );
 }
 
-function ComingSoonProvider() {
+function CloudflareDeployConfig() {
   const t = useT();
+  const [token, setToken] = useState("");
+  const [accountId, setAccountId] = useState("");
+  const [configured, setConfigured] = useState(false);
+  const [tokenMask, setTokenMask] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = async () => {
+    try {
+      const res = await fetch("/api/deploy/config?provider=cloudflare-pages");
+      if (!res.ok) return;
+      const data = await res.json();
+      setConfigured(!!data.configured);
+      setTokenMask(data.tokenMask || "");
+      setToken(data.tokenMask || "");
+      setAccountId(data.accountId || "");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const onSave = async () => {
+    setLoading(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/deploy/config?provider=cloudflare-pages", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: token.trim(), accountId: accountId.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      setConfigured(!!data.configured);
+      setTokenMask(data.tokenMask || "");
+      setToken(data.tokenMask || token);
+      setAccountId(data.accountId || "");
+      setSavedAt(Date.now());
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onClear = async () => {
+    if (!confirm("Clear Cloudflare token from ~/.html-anything?")) return;
+    setLoading(true);
+    setErr(null);
+    try {
+      await fetch("/api/deploy/config?provider=cloudflare-pages", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: "", accountId: "" }),
+      });
+      setToken("");
+      setAccountId("");
+      setConfigured(false);
+      setTokenMask("");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div
-      className="rounded-2xl p-4 opacity-60"
-      style={{ background: "var(--paper)", border: "1px dashed var(--line)" }}
+      className="mb-3 rounded-2xl p-4"
+      style={{ background: "var(--paper)", border: "1px solid var(--line-faint)" }}
     >
-      <div className="flex items-center justify-between">
-        <div className="text-[13px] font-semibold text-[var(--ink-soft)]">
-          {t("deploy.provider.cloudflarePages")}
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div>
+          <div className="text-[13px] font-semibold text-[var(--ink)]">
+            {t("settings.deploy.cloudflare.title")}
+          </div>
+          {configured && (
+            <div className="text-[10.5px] text-[var(--green)] mt-0.5">
+              ● {t("settings.deploy.configured")}
+            </div>
+          )}
         </div>
-        <span className="text-[10px] uppercase tracking-wider text-[var(--ink-faint)]">
-          {t("deploy.provider.cloudflarePages.comingSoon")}
-        </span>
+        <a
+          href="https://dash.cloudflare.com/?to=/:account/workers-and-pages/pages"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="text-[10.5px] text-[var(--coral)] hover:underline shrink-0"
+        >
+          dash.cloudflare.com ↗
+        </a>
       </div>
+
+      <label className="block text-[11px] uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-1">
+        {t("settings.deploy.cloudflare.accountIdLabel")}
+      </label>
+      <input
+        type="text"
+        value={accountId}
+        onChange={(e) => setAccountId(e.target.value)}
+        placeholder={t("settings.deploy.cloudflare.accountIdPlaceholder")}
+        className="w-full rounded-lg px-3 py-1.5 font-mono text-[12px] outline-none mb-3"
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--line)",
+          color: "var(--ink)",
+        }}
+      />
+
+      <label className="block text-[11px] uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-1">
+        {t("settings.deploy.cloudflare.tokenLabel")}
+      </label>
+      <input
+        type="text"
+        value={token}
+        onChange={(e) => setToken(e.target.value)}
+        placeholder={t("settings.deploy.cloudflare.tokenPlaceholder")}
+        className="w-full rounded-lg px-3 py-1.5 font-mono text-[12px] outline-none mb-2"
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--line)",
+          color: "var(--ink)",
+        }}
+      />
+
+      <div className="flex items-center gap-2 text-[10.5px] text-[var(--ink-mute)] mb-3 leading-snug">
+        {t("settings.deploy.cloudflare.tokenHint")}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onSave}
+          disabled={loading || !token.trim() || !accountId.trim() || (token.trim() === tokenMask && configured)}
+          className="rounded-lg px-3 py-1.5 text-[11px] font-medium disabled:opacity-40"
+          style={{ background: "var(--ink)", color: "var(--paper)" }}
+        >
+          {t("settings.deploy.save")}
+        </button>
+        {configured && (
+          <button
+            onClick={onClear}
+            disabled={loading}
+            className="rounded-lg px-2.5 py-1.5 text-[11px] text-[var(--ink-mute)] hover:bg-[var(--surface)] hover:text-[var(--coral)]"
+          >
+            {t("settings.deploy.clear")}
+          </button>
+        )}
+        {savedAt && (
+          <span className="text-[10.5px] text-[var(--green)]">
+            {t("settings.deploy.configured")}
+          </span>
+        )}
+      </div>
+      {err && (
+        <div className="mt-2 text-[11px]" style={{ color: "var(--red)" }}>
+          {err}
+        </div>
+      )}
     </div>
   );
 }

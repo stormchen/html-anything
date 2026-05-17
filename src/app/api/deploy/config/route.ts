@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   DeployError,
-  isDeployProviderId,
   publicDeployConfigForProvider,
   readDeployConfig,
   writeDeployConfig,
   type DeployConfig,
-  type DeployProviderId,
 } from "@/lib/deploy/config";
+import { isDeployProviderId, type DeployProviderId } from "@/lib/deploy/constants";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

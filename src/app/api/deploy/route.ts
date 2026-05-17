@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   DeployError,
-  isDeployProviderId,
   readDeployConfig,
-  type DeployProviderId,
 } from "@/lib/deploy/config";
+import { isDeployProviderId, type DeployProviderId } from "@/lib/deploy/constants";
 import { deployToVercel } from "@/lib/deploy/vercel";
+import { deployToCloudflarePages } from "@/lib/deploy/cloudflare-pages";
+import { deployToGithubRepo } from "@/lib/deploy/github-repo";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -83,36 +84,35 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (provider !== "vercel") {
-    // CF Pages support is planned for the next iteration. Surface a clear
-    // 501 rather than crashing on an unimplemented branch.
-    return NextResponse.json(
-      {
-        error:
-          "Cloudflare Pages deploy is not implemented yet. Vercel is currently the only supported provider.",
-      },
-      { status: 501 },
-    );
-  }
-
   try {
     const config = await readDeployConfig(provider);
     if (!config.token) {
+      const providerLabel =
+        provider === "vercel"
+          ? "Vercel"
+          : provider === "github-repo"
+            ? "GitHub"
+            : "Cloudflare";
       throw new DeployError(
-        "Vercel token is not configured. Open Settings → Deploy to add one.",
+        `${providerLabel} token is not configured. Open Settings → Deploy to add one.`,
         400,
         undefined,
         "missing_token",
       );
     }
+
     const fullHtml = ensureFullHtmlDocument(html);
-    const result = await deployToVercel({
-      config,
-      taskId,
-      files: [
-        { file: "index.html", data: fullHtml, contentType: "text/html" },
-      ],
-    });
+    const files = [
+      { file: "index.html", data: fullHtml, contentType: "text/html" },
+    ];
+
+    const result =
+      provider === "cloudflare-pages"
+        ? await deployToCloudflarePages({ config, files, taskId })
+        : provider === "github-repo"
+          ? await deployToGithubRepo({ config, files, taskId })
+          : await deployToVercel({ config, files, taskId });
+
     return NextResponse.json(result);
   } catch (err) {
     return deployErrorResponse(err);
