@@ -137,17 +137,6 @@ export function DeployControl() {
           </div>
           <button
             onClick={() => {
-              setProvider(CLOUDFLARE_PAGES_PROVIDER_ID);
-              setMenuOpen(false);
-            }}
-            className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[11px] hover:bg-[var(--surface)] ${
-              provider === "cloudflare-pages" ? "text-[var(--coral)] font-medium" : "text-[var(--ink-soft)]"
-            }`}
-          >
-            ☁️ {t("deploy.provider.cloudflarePages")}
-          </button>
-          <button
-            onClick={() => {
               setProvider(GITHUB_REPO_PROVIDER_ID);
               setMenuOpen(false);
             }}

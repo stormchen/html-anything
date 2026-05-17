@@ -12,12 +12,13 @@ import { useT, type DictKey } from "@/lib/i18n";
 
 type Props = { onClose: () => void; initialSection?: SectionId };
 
-type SectionId = "agent" | "deploy" | "language";
+type SectionId = "agent" | "deploy" | "language" | "backup";
 
 const SECTIONS: Array<{ id: SectionId; labelKey: DictKey; hintKey: DictKey }> = [
   { id: "agent", labelKey: "settings.section.agent.label", hintKey: "settings.section.agent.hint" },
   { id: "deploy", labelKey: "settings.section.deploy.label", hintKey: "settings.section.deploy.hint" },
   { id: "language", labelKey: "settings.section.language.label", hintKey: "settings.section.language.hint" },
+  { id: "backup", labelKey: "settings.section.backup.label", hintKey: "settings.section.backup.hint" },
 ];
 
 const PROTOCOL_KEY: Record<AgentInfo["protocol"], { key: DictKey; tone: "ok" | "warn" }> = {
@@ -150,6 +151,7 @@ export function SettingsModal({ onClose, initialSection = "agent" }: Props) {
             {section === "agent" && <AgentSection />}
             {section === "deploy" && <DeploySection />}
             {section === "language" && <LanguageSection />}
+            {section === "backup" && <BackupSection />}
           </div>
         </div>
 
@@ -656,7 +658,6 @@ function DeploySection() {
         </p>
       </div>
       <GitHubRepoDeployConfig />
-      <CloudflareDeployConfig />
       <VercelDeployConfig />
     </div>
   );
@@ -1016,6 +1017,293 @@ function VercelDeployConfig() {
           {err}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Backup & Restore ──────────────────────────────────────────────────────────
+
+const LS_KEY = "html-everything-store";
+
+function toB64(arr: Uint8Array): string {
+  let s = "";
+  for (let i = 0; i < arr.length; i++) s += String.fromCharCode(arr[i]);
+  return btoa(s);
+}
+
+function fromB64(s: string): Uint8Array {
+  const binary = atob(s);
+  const result = new Uint8Array(new ArrayBuffer(binary.length));
+  for (let i = 0; i < binary.length; i++) result[i] = binary.charCodeAt(i);
+  return result;
+}
+
+async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+  const raw = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(password),
+    "PBKDF2",
+    false,
+    ["deriveKey"] as KeyUsage[],
+  );
+  return crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt: new Uint8Array(salt), iterations: 300_000, hash: "SHA-256" },
+    raw,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"] as KeyUsage[],
+  );
+}
+
+async function encryptJson(data: unknown, password: string) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(password, salt);
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    new TextEncoder().encode(JSON.stringify(data)),
+  );
+  return {
+    algorithm: "AES-GCM-PBKDF2-SHA256",
+    iterations: 300_000,
+    salt: toB64(salt),
+    iv: toB64(iv),
+    ciphertext: toB64(new Uint8Array(ciphertext)),
+  };
+}
+
+async function decryptJson(
+  blob: { salt: string; iv: string; ciphertext: string },
+  password: string,
+): Promise<unknown> {
+  const iv = fromB64(blob.iv);
+  const data = fromB64(blob.ciphertext);
+  const key = await deriveKey(password, fromB64(blob.salt));
+  const plain = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: iv as unknown as BufferSource },
+    key,
+    data as unknown as BufferSource,
+  );
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+
+function BackupSection() {
+  const t = useT();
+  const [exportPw, setExportPw] = useState("");
+  const [importPw, setImportPw] = useState("");
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [exportMsg, setExportMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const handleExport = async () => {
+    if (!exportPw) return;
+    setExporting(true);
+    setExportMsg(null);
+    try {
+      const res = await fetch("/api/backup");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const { tokens, envLocal } = await res.json();
+
+      const encryptedTokens = await encryptJson(tokens, exportPw);
+      const appState = JSON.parse(localStorage.getItem(LS_KEY) ?? "{}");
+
+      const backup = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        appState,
+        envLocal,
+        tokens: encryptedTokens,
+      };
+
+      const blob = new Blob([JSON.stringify(backup, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `html-anything-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setExportMsg({ ok: true, text: t("settings.backup.export.success") });
+    } catch (err) {
+      setExportMsg({ ok: false, text: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importFile || !importPw) return;
+    setImporting(true);
+    setImportMsg(null);
+    try {
+      const text = await importFile.text();
+      let backup: Record<string, unknown>;
+      try {
+        backup = JSON.parse(text);
+      } catch {
+        throw new Error(t("settings.backup.import.errorInvalidFile"));
+      }
+
+      if (!backup.version || typeof backup.tokens !== "object" || !(backup.tokens as Record<string, unknown>).ciphertext) {
+        throw new Error(t("settings.backup.import.errorInvalidFile"));
+      }
+
+      let rawTokens: unknown;
+      try {
+        rawTokens = await decryptJson(
+          backup.tokens as { salt: string; iv: string; ciphertext: string },
+          importPw,
+        );
+      } catch {
+        throw new Error(t("settings.backup.import.errorWrongPassword"));
+      }
+
+      // Restore tokens on server
+      await fetch("/api/backup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tokens: rawTokens }),
+      });
+
+      // Restore env vars
+      if (backup.envLocal && typeof backup.envLocal === "object") {
+        await fetch("/api/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(backup.envLocal),
+        });
+      }
+
+      // Restore localStorage
+      if (backup.appState) {
+        localStorage.setItem(LS_KEY, JSON.stringify(backup.appState));
+      }
+
+      setImportMsg({ ok: true, text: t("settings.backup.import.success") });
+    } catch (err) {
+      setImportMsg({ ok: false, text: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const cardStyle = {
+    background: "var(--paper)",
+    border: "1px solid var(--line-faint)",
+  };
+  const inputStyle = {
+    background: "var(--surface)",
+    border: "1px solid var(--line)",
+    color: "var(--ink)",
+  };
+  const labelClass = "block text-[11px] uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-1";
+  const inputClass = "w-full rounded-lg px-3 py-1.5 font-mono text-[12px] outline-none mb-3";
+
+  return (
+    <div>
+      <div className="mb-4">
+        <h3 className="text-[17px] font-semibold text-[var(--ink)]">
+          {t("settings.backup.title")}
+        </h3>
+        <p className="mt-1 text-[12.5px] text-[var(--ink-mute)] leading-relaxed">
+          {t("settings.backup.subtitle")}
+        </p>
+      </div>
+
+      {/* Export */}
+      <div className="mb-3 rounded-2xl p-4" style={cardStyle}>
+        <div className="text-[13px] font-semibold text-[var(--ink)] mb-3">
+          {t("settings.backup.export.heading")}
+        </div>
+        <label className={labelClass}>{t("settings.backup.export.passwordLabel")}</label>
+        <input
+          type="password"
+          value={exportPw}
+          onChange={(e) => setExportPw(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") handleExport(); }}
+          placeholder={t("settings.backup.export.passwordPlaceholder")}
+          className={inputClass}
+          style={inputStyle}
+          autoComplete="new-password"
+        />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExport}
+            disabled={exporting || !exportPw}
+            className="rounded-lg px-3 py-1.5 text-[11px] font-medium disabled:opacity-40"
+            style={{ background: "var(--ink)", color: "var(--paper)" }}
+          >
+            {exporting
+              ? t("settings.backup.export.exporting")
+              : t("settings.backup.export.button")}
+          </button>
+          {exportMsg && (
+            <span
+              className="text-[11px]"
+              style={{ color: exportMsg.ok ? "var(--green)" : "var(--coral)" }}
+            >
+              {exportMsg.text}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Import */}
+      <div className="mb-3 rounded-2xl p-4" style={cardStyle}>
+        <div className="text-[13px] font-semibold text-[var(--ink)] mb-3">
+          {t("settings.backup.import.heading")}
+        </div>
+        <label className={labelClass}>{t("settings.backup.import.fileLabel")}</label>
+        <input
+          type="file"
+          accept=".json,application/json"
+          onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+          className="w-full text-[12px] text-[var(--ink-soft)] mb-3 file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--surface)] file:px-2.5 file:py-1 file:text-[11px] file:text-[var(--ink-soft)] file:cursor-pointer"
+        />
+        <label className={labelClass}>{t("settings.backup.import.passwordLabel")}</label>
+        <input
+          type="password"
+          value={importPw}
+          onChange={(e) => setImportPw(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") handleImport(); }}
+          placeholder={t("settings.backup.import.passwordPlaceholder")}
+          className={inputClass}
+          style={inputStyle}
+          autoComplete="current-password"
+        />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleImport}
+            disabled={importing || !importFile || !importPw}
+            className="rounded-lg px-3 py-1.5 text-[11px] font-medium disabled:opacity-40"
+            style={{ background: "var(--ink)", color: "var(--paper)" }}
+          >
+            {importing
+              ? t("settings.backup.import.importing")
+              : t("settings.backup.import.button")}
+          </button>
+          {importMsg && (
+            <span
+              className="text-[11px] leading-snug"
+              style={{ color: importMsg.ok ? "var(--green)" : "var(--coral)" }}
+            >
+              {importMsg.text}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Note */}
+      <div
+        className="rounded-xl px-4 py-3 text-[11px] text-[var(--ink-mute)] leading-relaxed"
+        style={{ background: "var(--paper)", border: "1px solid var(--line-faint)" }}
+      >
+        🔐 {t("settings.backup.note")}
+      </div>
     </div>
   );
 }

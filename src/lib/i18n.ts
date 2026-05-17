@@ -132,6 +132,26 @@ export interface Dict {
   "settings.deploy.save": string;
   "settings.deploy.clear": string;
   "settings.deploy.configured": string;
+  "settings.section.backup.label": string;
+  "settings.section.backup.hint": string;
+  "settings.backup.title": string;
+  "settings.backup.subtitle": string;
+  "settings.backup.export.heading": string;
+  "settings.backup.export.passwordLabel": string;
+  "settings.backup.export.passwordPlaceholder": string;
+  "settings.backup.export.button": string;
+  "settings.backup.export.exporting": string;
+  "settings.backup.export.success": string;
+  "settings.backup.import.heading": string;
+  "settings.backup.import.fileLabel": string;
+  "settings.backup.import.passwordLabel": string;
+  "settings.backup.import.passwordPlaceholder": string;
+  "settings.backup.import.button": string;
+  "settings.backup.import.importing": string;
+  "settings.backup.import.success": string;
+  "settings.backup.import.errorWrongPassword": string;
+  "settings.backup.import.errorInvalidFile": string;
+  "settings.backup.note": string;
   "deploy.button": string;
   "deploy.button.disabled": string;
   "deploy.deploying": string;
@@ -462,6 +482,26 @@ const en: Dict = {
   "settings.deploy.save": "Save",
   "settings.deploy.clear": "Clear",
   "settings.deploy.configured": "Configured",
+  "settings.section.backup.label": "Backup",
+  "settings.section.backup.hint": "Export / import settings",
+  "settings.backup.title": "Backup & Restore",
+  "settings.backup.subtitle": "Export all settings (tasks, tokens, env vars) to an encrypted file, or restore from a previous backup.",
+  "settings.backup.export.heading": "Export",
+  "settings.backup.export.passwordLabel": "Encryption password",
+  "settings.backup.export.passwordPlaceholder": "Enter a password to encrypt tokens",
+  "settings.backup.export.button": "Download backup",
+  "settings.backup.export.exporting": "Exporting…",
+  "settings.backup.export.success": "Backup downloaded",
+  "settings.backup.import.heading": "Import",
+  "settings.backup.import.fileLabel": "Backup file",
+  "settings.backup.import.passwordLabel": "Decryption password",
+  "settings.backup.import.passwordPlaceholder": "Enter the password used when exporting",
+  "settings.backup.import.button": "Restore backup",
+  "settings.backup.import.importing": "Restoring…",
+  "settings.backup.import.success": "Restored — please reload the page",
+  "settings.backup.import.errorWrongPassword": "Wrong password or corrupted backup file",
+  "settings.backup.import.errorInvalidFile": "Invalid backup file",
+  "settings.backup.note": "Tokens are encrypted with AES-256-GCM inside the backup file",
   "deploy.button": "Publish",
   "deploy.button.disabled": "Run Convert first",
   "deploy.deploying": "Deploying…",
@@ -791,6 +831,26 @@ const zhCN: Dict = {
   "settings.deploy.save": "保存",
   "settings.deploy.clear": "清除",
   "settings.deploy.configured": "已配置",
+  "settings.section.backup.label": "备份",
+  "settings.section.backup.hint": "导出 / 导入设置",
+  "settings.backup.title": "备份与还原",
+  "settings.backup.subtitle": "将所有设置（任务、Token、环境变量）导出为加密文件，或从备份还原。",
+  "settings.backup.export.heading": "导出",
+  "settings.backup.export.passwordLabel": "加密密码",
+  "settings.backup.export.passwordPlaceholder": "输入密码（用于加密 Token）",
+  "settings.backup.export.button": "下载备份",
+  "settings.backup.export.exporting": "导出中…",
+  "settings.backup.export.success": "备份已下载",
+  "settings.backup.import.heading": "导入",
+  "settings.backup.import.fileLabel": "备份文件",
+  "settings.backup.import.passwordLabel": "解密密码",
+  "settings.backup.import.passwordPlaceholder": "输入导出时的密码",
+  "settings.backup.import.button": "还原备份",
+  "settings.backup.import.importing": "还原中…",
+  "settings.backup.import.success": "还原完成，请刷新页面",
+  "settings.backup.import.errorWrongPassword": "密码错误或备份文件已损坏",
+  "settings.backup.import.errorInvalidFile": "无效的备份文件",
+  "settings.backup.note": "Token 以 AES-256-GCM 加密储存于备份文件中",
   "deploy.button": "发布",
   "deploy.button.disabled": "请先生成 HTML",
   "deploy.deploying": "部署中…",
@@ -1116,6 +1176,26 @@ const zhTW: Dict = {
   "settings.deploy.save": "儲存",
   "settings.deploy.clear": "清除",
   "settings.deploy.configured": "已設定",
+  "settings.section.backup.label": "備份",
+  "settings.section.backup.hint": "匯出 / 匯入設定",
+  "settings.backup.title": "備份與還原",
+  "settings.backup.subtitle": "將所有設定（任務、Token、環境變數）匯出為加密檔案，或從備份還原。",
+  "settings.backup.export.heading": "匯出",
+  "settings.backup.export.passwordLabel": "加密密碼",
+  "settings.backup.export.passwordPlaceholder": "輸入密碼（用於加密 Token）",
+  "settings.backup.export.button": "下載備份",
+  "settings.backup.export.exporting": "匯出中…",
+  "settings.backup.export.success": "備份已下載",
+  "settings.backup.import.heading": "匯入",
+  "settings.backup.import.fileLabel": "備份檔案",
+  "settings.backup.import.passwordLabel": "解密密碼",
+  "settings.backup.import.passwordPlaceholder": "輸入匯出時的密碼",
+  "settings.backup.import.button": "還原備份",
+  "settings.backup.import.importing": "還原中…",
+  "settings.backup.import.success": "還原完成，請重新整理頁面",
+  "settings.backup.import.errorWrongPassword": "密碼錯誤或備份檔案已損毀",
+  "settings.backup.import.errorInvalidFile": "無效的備份檔案",
+  "settings.backup.note": "Token 以 AES-256-GCM 加密儲存於備份檔案中",
   "deploy.button": "發布",
   "deploy.button.disabled": "請先轉換為 HTML",
   "deploy.deploying": "部署中…",
