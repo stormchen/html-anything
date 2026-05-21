@@ -83,6 +83,11 @@ function injectBackNav(html: string, galleryUrl: string): string {
  * Contents API (PUT /contents/{path}) only handles one file per request and
  * creates one commit per call. The Git Data API lets us build a tree with
  * any number of files and wrap it in a single commit.
+ *
+ * Includes automatic retry (up to 3 attempts) when the branch ref PATCH
+ * returns 422 "Reference cannot be updated" — this happens when another
+ * commit advances the branch between the time we read the HEAD SHA and
+ * the time we try to update the ref (race condition).
  */
 async function commitFiles(
   token: string,
@@ -91,61 +96,80 @@ async function commitFiles(
   message: string,
   files: Array<{ path: string; content: string; encoding: "base64" | "utf-8" }>,
 ): Promise<{ sha: string; html_url?: string }> {
-  // 1. Resolve HEAD commit SHA
-  const ref = (await ghRequest(
-    token,
-    `/repos/${repo}/git/ref/heads/${branch}`,
-  )) as { object: { sha: string } };
-  const headSha = ref.object.sha;
+  const MAX_RETRIES = 3;
 
-  // 2. Resolve current tree SHA
-  const headCommit = (await ghRequest(
-    token,
-    `/repos/${repo}/git/commits/${headSha}`,
-  )) as { tree: { sha: string } };
-  const treeSha = headCommit.tree.sha;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    // 1. Resolve HEAD commit SHA (re-read on every retry to get latest)
+    const ref = (await ghRequest(
+      token,
+      `/repos/${repo}/git/ref/heads/${branch}`,
+    )) as { object: { sha: string } };
+    const headSha = ref.object.sha;
 
-  // 3. Create a blob for every file (parallel)
-  const blobs = await Promise.all(
-    files.map((f) =>
-      ghRequest(token, `/repos/${repo}/git/blobs`, {
-        method: "POST",
-        body: JSON.stringify({ content: f.content, encoding: f.encoding }),
-      }) as Promise<{ sha: string }>,
-    ),
-  );
+    // 2. Resolve current tree SHA
+    const headCommit = (await ghRequest(
+      token,
+      `/repos/${repo}/git/commits/${headSha}`,
+    )) as { tree: { sha: string } };
+    const treeSha = headCommit.tree.sha;
 
-  // 4. Build a new tree on top of the existing one
-  const newTree = (await ghRequest(token, `/repos/${repo}/git/trees`, {
-    method: "POST",
-    body: JSON.stringify({
-      base_tree: treeSha,
-      tree: files.map((f, i) => ({
-        path: f.path,
-        mode: "100644",
-        type: "blob",
-        sha: blobs[i].sha,
-      })),
-    }),
-  })) as { sha: string };
+    // 3. Create a blob for every file (parallel)
+    const blobs = await Promise.all(
+      files.map((f) =>
+        ghRequest(token, `/repos/${repo}/git/blobs`, {
+          method: "POST",
+          body: JSON.stringify({ content: f.content, encoding: f.encoding }),
+        }) as Promise<{ sha: string }>,
+      ),
+    );
 
-  // 5. Create the commit
-  const newCommit = (await ghRequest(token, `/repos/${repo}/git/commits`, {
-    method: "POST",
-    body: JSON.stringify({
-      message,
-      tree: newTree.sha,
-      parents: [headSha],
-    }),
-  })) as { sha: string; html_url?: string };
+    // 4. Build a new tree on top of the existing one
+    const newTree = (await ghRequest(token, `/repos/${repo}/git/trees`, {
+      method: "POST",
+      body: JSON.stringify({
+        base_tree: treeSha,
+        tree: files.map((f, i) => ({
+          path: f.path,
+          mode: "100644",
+          type: "blob",
+          sha: blobs[i].sha,
+        })),
+      }),
+    })) as { sha: string };
 
-  // 6. Fast-forward the branch ref
-  await ghRequest(token, `/repos/${repo}/git/refs/heads/${branch}`, {
-    method: "PATCH",
-    body: JSON.stringify({ sha: newCommit.sha }),
-  });
+    // 5. Create the commit
+    const newCommit = (await ghRequest(token, `/repos/${repo}/git/commits`, {
+      method: "POST",
+      body: JSON.stringify({
+        message,
+        tree: newTree.sha,
+        parents: [headSha],
+      }),
+    })) as { sha: string; html_url?: string };
 
-  return newCommit;
+    // 6. Fast-forward the branch ref — may fail with 422 if another commit
+    //    raced ahead of us. Retry from step 1 with the updated HEAD.
+    try {
+      await ghRequest(token, `/repos/${repo}/git/refs/heads/${branch}`, {
+        method: "PATCH",
+        body: JSON.stringify({ sha: newCommit.sha }),
+      });
+      return newCommit;
+    } catch (err) {
+      const isConflict =
+        err instanceof DeployError && err.status === 422;
+      if (isConflict && attempt < MAX_RETRIES) {
+        // Branch was pushed by another commit between our read and write.
+        // Wait briefly, then retry the entire sequence with the new HEAD.
+        await new Promise((r) => setTimeout(r, 500 * attempt));
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  // Unreachable — TypeScript needs an explicit throw.
+  throw new DeployError("Failed to update branch ref after retries.", 422);
 }
 
 export async function deployToGithubRepo({
