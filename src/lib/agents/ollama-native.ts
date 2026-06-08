@@ -3,6 +3,41 @@
 import { InvokeEvent } from "./invoke";
 
 /**
+ * 動態偵測遠端相容 OpenAI /v1 介面的伺服器當前加載的 active model。
+ * 支援 MLX-VLM 的 /health 端點與標準 OpenAI 的 /v1/models 端點。
+ */
+async function getActiveV1Model(baseUrl: string): Promise<string | null> {
+  try {
+    // 1. 嘗試從 /health 端點取得當前載入的模型 (MLX-VLM 特有)
+    const healthRes = await fetch(`${baseUrl}/health`, { signal: AbortSignal.timeout(1500) });
+    if (healthRes.ok) {
+      const data = await healthRes.json();
+      if (data && data.loaded_model) {
+        return data.loaded_model;
+      }
+    }
+  } catch (e) {
+    // 忽略錯誤，嘗試下一個端點
+  }
+
+  try {
+    // 2. 嘗試從 /v1/models 取得模型列表並使用第一個 (標準 OpenAI 端點)
+    const modelsRes = await fetch(`${baseUrl}/v1/models`, { signal: AbortSignal.timeout(1500) });
+    if (modelsRes.ok) {
+      const data = await modelsRes.json();
+      if (data && data.data && Array.isArray(data.data) && data.data.length > 0) {
+        return data.data[0].id;
+      }
+    }
+  } catch (e) {
+    // 忽略錯誤
+  }
+
+  return null;
+}
+
+
+/**
  * Directly invokes Ollama via its local HTTP API.
  * This skips the need for any CLI binary or path configuration.
  */
@@ -34,24 +69,31 @@ export function invokeOllamaNative(opts: {
       };
 
       try {
-        console.log(`[Local AI] Connecting to ${baseUrl} with model ${model}`);
-        
-        // Check if we should use OpenAI chat completions format (MLX-VLM / v1)
-        // We'll peek at the models endpoint or just assume based on common local AI ports
         const isV1 = baseUrl.includes(":8080") || baseUrl.includes("/v1");
+        
+        // 如果是 OpenAI/MLX-VLM 端點，且使用者未指定特定模型 (使用 default 或未傳)，我們動態偵測當前載入的模型
+        let activeModel = model;
+        if (isV1 && (!opts.model || opts.model === "default" || opts.model === "qwen2.5-coder:7b")) {
+          const detectedModel = await getActiveV1Model(baseUrl);
+          if (detectedModel) {
+            activeModel = detectedModel;
+          }
+        }
+
+        console.log(`[Local AI] Connecting to ${baseUrl} with model ${activeModel}`);
         const endpoint = isV1 ? `${baseUrl}/v1/chat/completions` : `${baseUrl}/api/generate`;
         
         const response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(isV1 ? {
-            model: model,
+            model: activeModel,
             messages: [{ role: "user", content: opts.prompt }],
             stream: true,
             max_tokens: 8192,
             temperature: 0.3,
           } : {
-            model: model,
+            model: activeModel,
             prompt: opts.prompt,
             stream: true,
             options: { num_predict: 8192 },
@@ -85,8 +127,9 @@ export function invokeOllamaNative(opts: {
             let delta = "";
             
             // Handle OpenAI stream format: "data: {...}"
-            if (isV1 && trimmed.startsWith("data: ")) {
-              const dataStr = trimmed.slice(6);
+            const v1Match = trimmed.match(/^data:\s*(.*)$/);
+            if (isV1 && v1Match) {
+              const dataStr = v1Match[1].trim();
               if (dataStr === "[DONE]") {
                 // 收到串流結束信號，立刻離開迴圈
                 streamDone = true;
@@ -130,8 +173,9 @@ export function invokeOllamaNative(opts: {
         if (buffer.trim()) {
           const trimmed = buffer.trim();
           let delta = "";
-          if (isV1 && trimmed.startsWith("data: ")) {
-            const dataStr = trimmed.slice(6);
+          const v1Match = trimmed.match(/^data:\s*(.*)$/);
+          if (isV1 && v1Match) {
+            const dataStr = v1Match[1].trim();
             if (dataStr !== "[DONE]") {
               try {
                 const json = JSON.parse(dataStr);
