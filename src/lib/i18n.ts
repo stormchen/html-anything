@@ -274,6 +274,9 @@ export interface Dict {
   "export.action.deckPdf": string;
   "export.action.deckPngZip": string;
   "export.action.deckPptx": string;
+  "export.action.notion": string;
+  "export.action.markdown": string;
+  "export.action.downloadMarkdown": string;
   "export.toast.image": string;
   "export.toast.html": string;
   "export.toast.text": string;
@@ -282,6 +285,9 @@ export interface Dict {
   "export.toast.deckPdf": string;
   "export.toast.deckPngZip": string;
   "export.toast.deckPptx": string;
+  "export.toast.notion": string;
+  "export.toast.markdown": string;
+  "export.toast.markdownSaved": string;
   "export.error.previewNotReady": string;
   "export.error.generic": string;
 
@@ -625,6 +631,9 @@ const en: Dict = {
   "export.action.deckPdf": "PDF · all slides (print)",
   "export.action.deckPngZip": "PNG · per-slide (.zip)",
   "export.action.deckPptx": ".pptx · PowerPoint",
+  "export.action.notion": "Notion (Rich Text)",
+  "export.action.markdown": "Markdown",
+  "export.action.downloadMarkdown": ".md Markdown file",
   "export.toast.image": "Image copied",
   "export.toast.html": "HTML copied",
   "export.toast.text": "Text copied",
@@ -633,6 +642,9 @@ const en: Dict = {
   "export.toast.deckPdf": "Print dialog opened — pick “Save as PDF”",
   "export.toast.deckPngZip": "Slide PNGs zipped",
   "export.toast.deckPptx": "PPTX downloaded",
+  "export.toast.notion": "Notion HTML copied",
+  "export.toast.markdown": "Markdown copied",
+  "export.toast.markdownSaved": "Markdown downloaded",
   "export.error.previewNotReady": "Preview not ready",
   "export.error.generic": "failed",
 
@@ -972,6 +984,9 @@ const zhCN: Dict = {
   "export.action.deckPdf": "PDF · 全部幻灯片 (打印)",
   "export.action.deckPngZip": "PNG · 每页一张 (.zip)",
   "export.action.deckPptx": ".pptx · PowerPoint",
+  "export.action.notion": "Notion (富文本)",
+  "export.action.markdown": "Markdown",
+  "export.action.downloadMarkdown": ".md Markdown 文件",
   "export.toast.image": "已复制图片",
   "export.toast.html": "已复制 HTML",
   "export.toast.text": "已复制文本",
@@ -980,6 +995,9 @@ const zhCN: Dict = {
   "export.toast.deckPdf": "已打开打印窗口 — 选「另存为 PDF」",
   "export.toast.deckPngZip": "已打包 PNG ZIP",
   "export.toast.deckPptx": "已下载 PPTX",
+  "export.toast.notion": "已复制 Notion 格式",
+  "export.toast.markdown": "已复制 Markdown",
+  "export.toast.markdownSaved": "已下载 Markdown",
   "export.error.previewNotReady": "预览未就绪",
   "export.error.generic": "失败",
 
@@ -1317,6 +1335,9 @@ const zhTW: Dict = {
   "export.action.deckPdf": "PDF · 全部投影片 (列印)",
   "export.action.deckPngZip": "PNG · 每頁一張 (.zip)",
   "export.action.deckPptx": ".pptx · PowerPoint",
+  "export.action.notion": "Notion (富文本)",
+  "export.action.markdown": "Markdown",
+  "export.action.downloadMarkdown": ".md Markdown 檔案",
   "export.toast.image": "已複製圖片",
   "export.toast.html": "已複製 HTML",
   "export.toast.text": "已複製文字",
@@ -1325,6 +1346,9 @@ const zhTW: Dict = {
   "export.toast.deckPdf": "已開啟列印視窗 — 請選擇「另存為 PDF」",
   "export.toast.deckPngZip": "已封裝 PNG ZIP",
   "export.toast.deckPptx": "已下載 PPTX",
+  "export.toast.notion": "已複製 Notion 格式",
+  "export.toast.markdown": "已複製 Markdown",
+  "export.toast.markdownSaved": "已下載 Markdown",
   "export.error.previewNotReady": "預覽尚未就緒",
   "export.error.generic": "失敗",
 

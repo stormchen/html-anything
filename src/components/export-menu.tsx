@@ -16,6 +16,8 @@ import {
   exportDeckPptx,
   exportDeckPrint,
 } from "@/lib/export/deck";
+import { copyToNotion } from "@/lib/export/notion";
+import { copyAsMarkdown, downloadAsMarkdown } from "@/lib/export/markdown-roundtrip";
 
 type ExportMenuProps = {
   iframeRef: React.MutableRefObject<HTMLIFrameElement | null>;
@@ -72,6 +74,8 @@ export function ExportMenu({ iframeRef }: ExportMenuProps) {
       title: t("export.section.raw"),
       actions: [
         { id: "html", label: t("export.action.html"), emoji: "</>", fn: wrap(t("export.toast.html"), async () => { await copyHtml(cleanHtml()); }) },
+        { id: "notion", label: t("export.action.notion"), emoji: "📓", fn: wrap(t("export.toast.notion"), async () => { await copyToNotion(cleanHtml()); }) },
+        { id: "markdown", label: t("export.action.markdown"), emoji: "Ⓜ️", fn: wrap(t("export.toast.markdown"), async () => { await copyAsMarkdown(cleanHtml()); }) },
         { id: "text", label: t("export.action.text"), emoji: "📝",  fn: wrap(t("export.toast.text"), async () => {
           const tmp = document.createElement("div"); tmp.innerHTML = cleanHtml(); await copyText(tmp.textContent ?? "");
         }) },
@@ -81,6 +85,7 @@ export function ExportMenu({ iframeRef }: ExportMenuProps) {
       title: t("export.section.download"),
       actions: [
         { id: "download-html", label: t("export.action.downloadHtml"), emoji: "💾", fn: wrap(t("export.toast.htmlSaved"), async () => { downloadHtml(cleanHtml()); }) },
+        { id: "download-markdown", label: t("export.action.downloadMarkdown"), emoji: "⬇️", fn: wrap(t("export.toast.markdownSaved"), async () => { downloadAsMarkdown(cleanHtml(), "html-anything"); }) },
         { id: "download-png",  label: t("export.action.downloadPng"),  emoji: "🖼️", fn: wrap(t("export.toast.imgSaved"), async () => {
           if (!iframeRef.current) throw new Error(t("export.error.previewNotReady")); await downloadIframeAsImage(iframeRef.current);
         }) },
