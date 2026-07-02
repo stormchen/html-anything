@@ -16,6 +16,7 @@ import {
   exportDeckPptx,
   exportDeckPrint,
 } from "@/lib/export/deck";
+import { exportDeckOpenSlide } from "@/lib/export/open-slide";
 
 type ExportMenuProps = {
   iframeRef: React.MutableRefObject<HTMLIFrameElement | null>;
@@ -116,6 +117,14 @@ export function ExportMenu({ iframeRef }: ExportMenuProps) {
                 emoji: "🎬",
                 fn: wrap(t("export.toast.deckPptx"), async () => {
                   await exportDeckPptx(deck.slides, deck.title);
+                }),
+              },
+              {
+                id: "deck-open-slide",
+                label: t("export.action.openSlide"),
+                emoji: "⚛️",
+                fn: wrap(t("export.toast.openSlide"), async () => {
+                  await exportDeckOpenSlide(deck.slides, deck.title);
                 }),
               },
             ],

@@ -206,11 +206,13 @@ function handleEvent(taskId: string, event: string, data: unknown, startedAt: nu
           outputBytes: len,
           firstByteAt: prev?.firstByteAt ?? Date.now(),
         });
-        store.pushLogFor(taskId, {
-          kind: "info",
-          elapsed,
-          text: `📄 从 Write 工具输入恢复 HTML (${len.toLocaleString()} 字节)`,
-        });
+        if (d.quiet !== true) {
+          store.pushLogFor(taskId, {
+            kind: "info",
+            elapsed,
+            text: `📄 从 Write 工具输入恢复 HTML (${len.toLocaleString()} 字节)`,
+          });
+        }
       }
       break;
     }

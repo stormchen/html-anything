@@ -274,6 +274,7 @@ export interface Dict {
   "export.action.deckPdf": string;
   "export.action.deckPngZip": string;
   "export.action.deckPptx": string;
+  "export.action.openSlide": string;
   "export.toast.image": string;
   "export.toast.html": string;
   "export.toast.text": string;
@@ -282,6 +283,7 @@ export interface Dict {
   "export.toast.deckPdf": string;
   "export.toast.deckPngZip": string;
   "export.toast.deckPptx": string;
+  "export.toast.openSlide": string;
   "export.error.previewNotReady": string;
   "export.error.generic": string;
 
@@ -625,6 +627,7 @@ const en: Dict = {
   "export.action.deckPdf": "PDF · all slides (print)",
   "export.action.deckPngZip": "PNG · per-slide (.zip)",
   "export.action.deckPptx": ".pptx · PowerPoint",
+  "export.action.openSlide": ".zip · Open-Slide React project",
   "export.toast.image": "Image copied",
   "export.toast.html": "HTML copied",
   "export.toast.text": "Text copied",
@@ -633,6 +636,7 @@ const en: Dict = {
   "export.toast.deckPdf": "Print dialog opened — pick “Save as PDF”",
   "export.toast.deckPngZip": "Slide PNGs zipped",
   "export.toast.deckPptx": "PPTX downloaded",
+  "export.toast.openSlide": "Open-Slide project zipped and downloaded",
   "export.error.previewNotReady": "Preview not ready",
   "export.error.generic": "failed",
 
@@ -972,6 +976,7 @@ const zhCN: Dict = {
   "export.action.deckPdf": "PDF · 全部幻灯片 (打印)",
   "export.action.deckPngZip": "PNG · 每页一张 (.zip)",
   "export.action.deckPptx": ".pptx · PowerPoint",
+  "export.action.openSlide": ".zip · Open-Slide React 项目",
   "export.toast.image": "已复制图片",
   "export.toast.html": "已复制 HTML",
   "export.toast.text": "已复制文本",
@@ -980,6 +985,7 @@ const zhCN: Dict = {
   "export.toast.deckPdf": "已打开打印窗口 — 选「另存为 PDF」",
   "export.toast.deckPngZip": "已打包 PNG ZIP",
   "export.toast.deckPptx": "已下载 PPTX",
+  "export.toast.openSlide": "已打包并下载 Open-Slide 项目",
   "export.error.previewNotReady": "预览未就绪",
   "export.error.generic": "失败",
 
@@ -1317,6 +1323,7 @@ const zhTW: Dict = {
   "export.action.deckPdf": "PDF · 全部投影片 (列印)",
   "export.action.deckPngZip": "PNG · 每頁一張 (.zip)",
   "export.action.deckPptx": ".pptx · PowerPoint",
+  "export.action.openSlide": ".zip · Open-Slide React 專案",
   "export.toast.image": "已複製圖片",
   "export.toast.html": "已複製 HTML",
   "export.toast.text": "已複製文字",
@@ -1325,6 +1332,7 @@ const zhTW: Dict = {
   "export.toast.deckPdf": "已開啟列印視窗 — 請選擇「另存為 PDF」",
   "export.toast.deckPngZip": "已封裝 PNG ZIP",
   "export.toast.deckPptx": "已下載 PPTX",
+  "export.toast.openSlide": "已打包並下載 Open-Slide 專案",
   "export.error.previewNotReady": "預覽尚未就緒",
   "export.error.generic": "失敗",
 
