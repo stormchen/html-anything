@@ -564,27 +564,45 @@ function CustomBinPath({
 
   const updateAgentModels = useStore((s) => s.updateAgentModels);
   const [fetching, setFetching] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const fetchOllamaModels = async (host: string) => {
     if (!isOllama || !host.trim()) return;
     setFetching(true);
+    setSyncError(null);
     try {
       const res = await fetch(`/api/agents/ollama-models?host=${encodeURIComponent(host)}`);
-      if (!res.ok) throw new Error("Fetch failed");
+      if (!res.ok) {
+        let errMsg = "Fetch failed";
+        try {
+          const data = await res.json();
+          if (data && data.error) {
+            errMsg = data.error;
+          }
+        } catch (_) {}
+        setSyncError(errMsg);
+        return;
+      }
       const data = await res.json();
       if (data.models) {
         updateAgentModels("ollama", data.models);
       }
     } catch (e) {
-      console.error("Failed to sync Ollama models:", e);
+      setSyncError(e instanceof Error ? e.message : String(e));
     } finally {
       setFetching(false);
     }
   };
 
+  useEffect(() => {
+    if (isOllama) {
+      fetchOllamaModels(value || "http://localhost:11434");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOllama, value]);
+
   const handleCommit = (val: string) => {
     onChange(val);
-    if (isOllama) fetchOllamaModels(val);
   };
 
   return (
@@ -598,7 +616,9 @@ function CustomBinPath({
             {eyebrow}
           </div>
           <div className="text-[12.5px] text-[var(--ink-soft)] mt-0.5">
-            {subtitle} {fetching && <span className="ml-2 animate-pulse text-[10px] text-[var(--coral)]">Syncing...</span>}
+            {subtitle}
+            {fetching && <span className="ml-2 animate-pulse text-[10px] text-[var(--coral)]">Syncing...</span>}
+            {!fetching && syncError && <span className="ml-2 text-[10px] text-[var(--coral)]">({syncError})</span>}
           </div>
         </div>
         {!isOllama && detected && (
