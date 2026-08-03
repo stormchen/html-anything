@@ -67,6 +67,10 @@ export function SettingsModal({ onClose, initialSection = "agent" }: Props) {
     if (ollamaModel !== undefined) {
       updates.NEXT_PUBLIC_OLLAMA_MODEL = ollamaModel;
     }
+    const geminiApiKey = s.agentBinOverrides["gemini"];
+    if (geminiApiKey !== undefined) {
+      updates.GEMINI_API_KEY = geminiApiKey;
+    }
     if (Object.keys(updates).length > 0) {
       fetch("/api/config", {
         method: "POST",
@@ -197,6 +201,10 @@ function AgentSection() {
 
       if (data.NEXT_PUBLIC_OLLAMA_URL && !currentOverrides["ollama"]) {
         setAgentBinOverride("ollama", data.NEXT_PUBLIC_OLLAMA_URL);
+      }
+
+      if (data.GEMINI_API_KEY && !currentOverrides["gemini"]) {
+        setAgentBinOverride("gemini", data.GEMINI_API_KEY);
       }
 
       if (data.NEXT_PUBLIC_DEFAULT_AGENT && !useStore.getState().selectedAgent) {
@@ -514,17 +522,42 @@ function CustomBinPath({
   }, [value, agent.id]);
 
   const isOllama = agent.id === "ollama";
-  const eyebrow = isOllama ? t("settings.agent.title") : t("agent.customBin.eyebrow");
-  const subtitle = isOllama
-    ? t("settings.agent.binPath.ollama")
-    : t("agent.customBin.subtitle", { agent: agent.label });
+  const isGemini = agent.id === "gemini";
+
+  let eyebrow = t("agent.customBin.eyebrow");
+  let subtitle = t("agent.customBin.subtitle", { agent: agent.label });
+  let hint = t("agent.customBin.hint");
+
+  if (isOllama) {
+    eyebrow = t("settings.agent.title");
+    subtitle = t("settings.agent.binPath.ollama");
+  } else if (isGemini) {
+    const locale = useStore.getState().locale;
+    if (locale === "zh-TW") {
+      eyebrow = "Gemini API 金鑰";
+      subtitle = "輸入您的 Gemini API 金鑰以使用雲端 API (例如 AIzaSy...)，或者輸入本地 gemini 執行檔路徑";
+      hint = "若要使用 Gemini 雲端 API，請在此輸入以 AIzaSy 開頭的 API 金鑰。留空則會嘗試偵測本地 gemini 執行檔。";
+    } else if (locale === "zh-CN") {
+      eyebrow = "Gemini API 密钥";
+      subtitle = "输入您的 Gemini API 密钥以使用云端 API (例如 AIzaSy...)，或者输入本地 gemini 二进制路径";
+      hint = "若要使用 Gemini 云端 API，请在此输入以 AIzaSy 开头的 API 密钥。留空则会尝试检测本地 gemini 二进制。";
+    } else {
+      eyebrow = "Gemini API Key";
+      subtitle = "Enter your Gemini API Key to use cloud API (e.g. AIzaSy...), or enter custom local gemini path";
+      hint = "To use Gemini Cloud API, enter your API Key starting with AIzaSy here. Leave blank to attempt auto-detection of local gemini CLI.";
+    }
+  }
 
   const isWindows = typeof navigator !== "undefined" && /Win/i.test(navigator.platform);
-  const placeholder = isOllama
+  let placeholder = isOllama
     ? "http://localhost:11434"
     : isWindows
       ? "C:\\Users\\you\\scoop\\apps\\nodejs\\current\\claude.cmd"
       : "/usr/local/bin/claude";
+
+  if (isGemini) {
+    placeholder = "AIzaSy...";
+  }
 
   const detected = agent.path;
   const dirty = draft.trim() !== value.trim();
@@ -615,7 +648,7 @@ function CustomBinPath({
         )}
       </div>
       <div className="mt-2 text-[10.5px] text-[var(--ink-mute)] leading-snug">
-        {t("agent.customBin.hint")}
+        {hint}
       </div>
     </div>
   );

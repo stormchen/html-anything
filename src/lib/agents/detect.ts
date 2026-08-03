@@ -117,15 +117,19 @@ export const AGENTS: AgentDef[] = [
   },
   {
     id: "gemini",
-    label: "Gemini CLI",
+    label: "Gemini API / CLI",
     bin: "gemini",
     envOverride: "GEMINI_BIN",
     vendor: "Google",
     protocol: "argv",
     fallbackModels: [
       DEFAULT_MODEL,
+      { id: "gemini-3.6-flash", label: "gemini-3.6-flash" },
+      { id: "gemini-3.5-flash-lite", label: "gemini-3.5-flash-lite" },
       { id: "gemini-2.5-pro", label: "gemini-2.5-pro" },
       { id: "gemini-2.5-flash", label: "gemini-2.5-flash" },
+      { id: "gemini-1.5-pro", label: "gemini-1.5-pro" },
+      { id: "gemini-1.5-flash", label: "gemini-1.5-flash" },
     ],
   },
   {
@@ -451,7 +455,7 @@ export function detectAgents(): DetectedAgent[] {
       models: a.fallbackModels,
       unsupported: unsupported || undefined,
     };
-    if (a.id === "ollama") {
+    if (a.id === "ollama" || a.id === "gemini") {
       return { ...base, available: true };
     }
     const override = a.envOverride ? process.env[a.envOverride] : undefined;

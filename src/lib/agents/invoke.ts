@@ -79,6 +79,7 @@ export type InvokeEvent =
   | { type: "error"; message: string };
 
 import { invokeOllamaNative } from "./ollama-native";
+import { invokeGeminiNative } from "./gemini-native";
 
 export function invokeAgent(opts: InvokeOpts): ReadableStream<InvokeEvent> {
   if (opts.agent === "ollama") {
@@ -88,6 +89,26 @@ export function invokeAgent(opts: InvokeOpts): ReadableStream<InvokeEvent> {
       signal: opts.signal,
       host: opts.binOverride,
     });
+  }
+
+  if (opts.agent === "gemini") {
+    const apiKey = opts.binOverride?.trim() || process.env.GEMINI_API_KEY?.trim() || "";
+    const isApiKey = apiKey.startsWith("AIzaSy") || (apiKey.length > 20 && !apiKey.includes("/") && !apiKey.includes("\\"));
+    const localBin = resolveOnPath("gemini");
+
+    if (isApiKey || !localBin) {
+      if (!apiKey) {
+        return errorStream(
+          "Gemini API Key is missing. Please configure GEMINI_API_KEY in your .env.local file or enter your Gemini API Key in Settings -> Custom path."
+        );
+      }
+      return invokeGeminiNative({
+        model: opts.model,
+        prompt: opts.prompt,
+        signal: opts.signal,
+        apiKey: apiKey,
+      });
+    }
   }
 
   const def = AGENTS.find((a) => a.id === opts.agent);

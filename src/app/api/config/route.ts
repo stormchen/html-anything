@@ -62,6 +62,7 @@ export async function GET() {
       NEXT_PUBLIC_OLLAMA_URL: map.get("NEXT_PUBLIC_OLLAMA_URL") ?? "",
       NEXT_PUBLIC_OLLAMA_MODEL: map.get("NEXT_PUBLIC_OLLAMA_MODEL") ?? "",
       NEXT_PUBLIC_DEFAULT_AGENT: map.get("NEXT_PUBLIC_DEFAULT_AGENT") ?? "",
+      GEMINI_API_KEY: map.get("GEMINI_API_KEY") ?? "",
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
@@ -76,6 +77,7 @@ export async function POST(req: NextRequest) {
       "NEXT_PUBLIC_OLLAMA_URL",
       "NEXT_PUBLIC_OLLAMA_MODEL",
       "NEXT_PUBLIC_DEFAULT_AGENT",
+      "GEMINI_API_KEY",
     ];
 
     // 只允許更新白名單內的 key

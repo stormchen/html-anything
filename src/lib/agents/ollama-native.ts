@@ -90,13 +90,16 @@ export function invokeOllamaNative(opts: {
             model: activeModel,
             messages: [{ role: "user", content: opts.prompt }],
             stream: true,
-            max_tokens: 8192,
+            max_tokens: 65536,
             temperature: 0.3,
           } : {
             model: activeModel,
             prompt: opts.prompt,
             stream: true,
-            options: { num_predict: 8192 },
+            options: { 
+              num_predict: 65536,
+              num_ctx: 65536 // Expand context window to 64K tokens to avoid prompt truncation
+            },
           }),
           signal: controller.signal,
         });
