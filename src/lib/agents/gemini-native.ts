@@ -37,7 +37,6 @@ export function invokeGeminiNative(opts: {
       };
 
       try {
-        console.log(`[Gemini API] Connecting to Gemini stream for model: ${model}`);
         
         const generationConfig: any = {};
 
@@ -126,16 +125,8 @@ export function invokeGeminiNative(opts: {
                   try {
                     const json = JSON.parse(jsonStr);
                     const candidate = json.candidates?.[0];
-                    if (candidate && candidate.finishReason) {
-                      console.log(`[Gemini API] Candidate finishReason: ${candidate.finishReason}`);
-                    }
-                    if (json.usageMetadata) {
-                      console.log(`[Gemini API] Usage metadata: prompt=${json.usageMetadata.promptTokenCount}, candidates=${json.usageMetadata.candidatesTokenCount}, total=${json.usageMetadata.totalTokenCount}, thoughts=${json.usageMetadata.thoughtsTokenCount}`);
-                    }
-                    
                     let text = candidate?.content?.parts?.[0]?.text || "";
                     if (text) {
-                      console.log(`[Gemini Stream] Delta chunk: ${JSON.stringify(text.slice(0, 60))}...`);
                       // Clean up markdown fences if AI adds them
                       if (text.includes("```")) {
                         text = text.replace(/```(html|)/g, "").replace(/```/g, "");
@@ -162,11 +153,9 @@ export function invokeGeminiNative(opts: {
         // Close reader cleanly
         try { reader.cancel(); } catch {}
 
-        console.log(`[Gemini API] Stream completed successfully.`);
         safeEnqueue({ type: "done", code: 0 });
       } catch (err: any) {
         if (err.name === "AbortError") {
-          console.log(`[Gemini API] Stream aborted by client.`);
           return;
         }
         console.error(`[Gemini API] Error during generation:`, err);
