@@ -1,5 +1,7 @@
 "use client";
 
+import { setupClientAuthSync } from "@/lib/auth/client-sync";
+
 import { useEffect, useMemo, useState } from "react";
 import {
   LOCALES,
@@ -77,6 +79,20 @@ export function SettingsModal({ onClose, initialSection = "agent" }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
       }).catch((e) => console.warn("[Config] Failed to save to .env.local:", e));
+    }
+    // Auto-sync github-repo deploy settings if present in store
+    const gh = s.deployConfigs?.["github-repo"];
+    if (gh && gh.token && gh.repo) {
+      fetch("/api/deploy/config?provider=github-repo", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: gh.token.trim(),
+          repo: gh.repo.trim(),
+          branch: (gh.branch || "main").trim(),
+          siteUrl: (gh.siteUrl || "").trim(),
+        }),
+      }).catch(() => {});
     }
     onClose();
   };
@@ -216,6 +232,7 @@ function AgentSection() {
   };
 
   const load = async () => {
+    setupClientAuthSync();
     setLoading(true);
     setErr(null);
     // 同步 .env.local → store，讓 UI 正確標示當前儲存的模型
@@ -632,7 +649,11 @@ function CustomBinPath({
         <input
           type="text"
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value;
+            setDraft(v);
+            onChange(v);
+          }}
           onBlur={() => handleCommit(draft)}
           onKeyDown={(e) => {
             if (e.key === "Enter") handleCommit(draft);
@@ -718,27 +739,37 @@ function DeploySection() {
 
 function GitHubRepoDeployConfig() {
   const t = useT();
-  const [token, setToken] = useState("");
-  const [repo, setRepo] = useState("");
-  const [branch, setBranch] = useState("");
-  const [siteUrl, setSiteUrl] = useState("");
-  const [configured, setConfigured] = useState(false);
+  const setDeployConfigFor = useStore((s) => s.setDeployConfigFor);
+  const localSaved = useStore((s) => s.deployConfigs?.["github-repo"]) ?? {};
+
+  const [token, setToken] = useState(localSaved.token ?? "");
+  const [repo, setRepo] = useState(localSaved.repo ?? "");
+  const [branch, setBranch] = useState(localSaved.branch ?? "");
+  const [siteUrl, setSiteUrl] = useState(localSaved.siteUrl ?? "");
+  const [configured, setConfigured] = useState(Boolean(localSaved.token && localSaved.repo));
   const [tokenMask, setTokenMask] = useState("");
   const [loading, setLoading] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
+
+  const saveLocal = (patch: Record<string, string>) => {
+    setDeployConfigFor("github-repo", patch);
+  };
 
   const load = async () => {
     try {
       const res = await fetch("/api/deploy/config?provider=github-repo");
       if (!res.ok) return;
       const data = await res.json();
-      setConfigured(!!data.configured);
+      const isConfigured = !!data.configured || Boolean(localSaved.token && localSaved.repo);
+      setConfigured(isConfigured);
       setTokenMask(data.tokenMask || "");
-      setToken(data.tokenMask || "");
-      setRepo(data.repo || "");
-      setBranch(data.branch || "");
-      setSiteUrl(data.siteUrl || "");
+
+      // If local has real values, keep them; otherwise populate from server
+      if (!token && data.tokenMask) setToken(data.tokenMask);
+      if (!repo && data.repo) setRepo(data.repo);
+      if (!branch && data.branch) setBranch(data.branch);
+      if (!siteUrl && data.siteUrl) setSiteUrl(data.siteUrl);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     }
@@ -753,24 +784,34 @@ function GitHubRepoDeployConfig() {
     setLoading(true);
     setErr(null);
     try {
+      const realToken = token.trim();
+      const realRepo = repo.trim();
+      const realBranch = branch.trim() || "main";
+      const realSiteUrl = siteUrl.trim();
+
+      // 1. Immediately persist to localStorage
+      saveLocal({
+        token: realToken,
+        repo: realRepo,
+        branch: realBranch,
+        siteUrl: realSiteUrl,
+      });
+
+      // 2. Persist to server
       const res = await fetch("/api/deploy/config?provider=github-repo", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          token: token.trim(),
-          repo: repo.trim(),
-          branch: branch.trim(),
-          siteUrl: siteUrl.trim(),
+          token: realToken,
+          repo: realRepo,
+          branch: realBranch,
+          siteUrl: realSiteUrl,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-      setConfigured(!!data.configured);
+      setConfigured(true);
       setTokenMask(data.tokenMask || "");
-      setToken(data.tokenMask || token);
-      setRepo(data.repo || "");
-      setBranch(data.branch || "");
-      setSiteUrl(data.siteUrl || "");
       setSavedAt(Date.now());
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -836,7 +877,11 @@ function GitHubRepoDeployConfig() {
       <input
         type="text"
         value={token}
-        onChange={(e) => setToken(e.target.value)}
+        onChange={(e) => {
+          const v = e.target.value;
+          setToken(v);
+          saveLocal({ token: v });
+        }}
         placeholder={t("settings.deploy.githubRepo.tokenPlaceholder")}
         className={inputClass}
         style={inputStyle}
@@ -846,7 +891,11 @@ function GitHubRepoDeployConfig() {
       <input
         type="text"
         value={repo}
-        onChange={(e) => setRepo(e.target.value)}
+        onChange={(e) => {
+          const v = e.target.value;
+          setRepo(v);
+          saveLocal({ repo: v });
+        }}
         placeholder={t("settings.deploy.githubRepo.repoPlaceholder")}
         className={inputClass}
         style={inputStyle}
@@ -856,7 +905,11 @@ function GitHubRepoDeployConfig() {
       <input
         type="text"
         value={branch}
-        onChange={(e) => setBranch(e.target.value)}
+        onChange={(e) => {
+          const v = e.target.value;
+          setBranch(v);
+          saveLocal({ branch: v });
+        }}
         placeholder="main"
         className={inputClass}
         style={inputStyle}
@@ -866,7 +919,11 @@ function GitHubRepoDeployConfig() {
       <input
         type="text"
         value={siteUrl}
-        onChange={(e) => setSiteUrl(e.target.value)}
+        onChange={(e) => {
+          const v = e.target.value;
+          setSiteUrl(v);
+          saveLocal({ siteUrl: v });
+        }}
         placeholder={t("settings.deploy.githubRepo.siteUrlPlaceholder")}
         className={inputClass}
         style={inputStyle}

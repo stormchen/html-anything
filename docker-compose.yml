@@ -1,0 +1,23 @@
+services:
+  html-anything:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: html-anything:latest
+    container_name: html-anything
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      # 預設 AI 代理 (例如: ollama, gemini 等)
+      - NEXT_PUBLIC_DEFAULT_AGENT=ollama
+      # 若 Mac mini 宿主機上有執行 Ollama，透過 host.docker.internal 存取
+      - NEXT_PUBLIC_OLLAMA_URL=http://host.docker.internal:11434
+      - NEXT_PUBLIC_OLLAMA_MODEL=qwen3.6:27b
+      # 若使用 Google Gemini 等 API，可在此填寫或透過同目錄的 .env 檔案提供
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    extra_hosts:
+      # 讓容器能用 host.docker.internal 解析到 Mac mini 宿主機 IP
+      - "host.docker.internal:host-gateway"

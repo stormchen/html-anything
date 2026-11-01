@@ -14,7 +14,23 @@ import path from "node:path";
  * routes rescan disk and the client refetches `/api/templates`.
  */
 
-const SKILLS_DIR = path.join(process.cwd(), "src/lib/templates/skills");
+function getSkillsDir(): string {
+  const candidates = [
+    path.join(process.cwd(), "src/lib/templates/skills"),
+    path.join(process.cwd(), ".next/standalone/src/lib/templates/skills"),
+    "/app/src/lib/templates/skills",
+    "/app/.next/standalone/src/lib/templates/skills",
+    path.resolve("src/lib/templates/skills"),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) {
+      return c;
+    }
+  }
+  return path.join(process.cwd(), "src/lib/templates/skills");
+}
+
+const SKILLS_DIR = getSkillsDir();
 
 export type SkillFrontmatter = {
   name?: string;
@@ -205,11 +221,12 @@ function isValidId(id: string): boolean {
 /** Return picker-ready metadata for every skill folder on disk. */
 export function listSkills(): SkillMeta[] {
   const now = Date.now();
-  if (metaCache && now - metaCacheAt < META_CACHE_TTL_MS) return metaCache;
+  if (metaCache && metaCache.length > 0 && now - metaCacheAt < META_CACHE_TTL_MS) return metaCache;
   const out: SkillMeta[] = [];
+  const skillsDir = getSkillsDir();
   let dirents: fs.Dirent[] = [];
   try {
-    dirents = fs.readdirSync(SKILLS_DIR, { withFileTypes: true });
+    dirents = fs.readdirSync(skillsDir, { withFileTypes: true });
   } catch {
     return out;
   }
@@ -217,7 +234,7 @@ export function listSkills(): SkillMeta[] {
     if (!ent.isDirectory()) continue;
     const id = ent.name;
     if (!isValidId(id)) continue;
-    const dir = path.join(SKILLS_DIR, id);
+    const dir = path.join(skillsDir, id);
     const raw = safeRead(path.join(dir, "SKILL.md"));
     if (!raw) continue;
     const { fm } = parseFrontmatter(raw);
@@ -225,15 +242,18 @@ export function listSkills(): SkillMeta[] {
     const hasMd = fs.existsSync(path.join(dir, "example.md"));
     out.push(fmToMeta(id, fm, hasHtml, hasMd));
   }
-  metaCache = out;
-  metaCacheAt = now;
+  if (out.length > 0) {
+    metaCache = out;
+    metaCacheAt = now;
+  }
   return out;
 }
 
 /** Load one skill including its prompt body and example contents. */
 export function loadSkill(id: string): LoadedSkill | null {
   if (!isValidId(id)) return null;
-  const dir = path.join(SKILLS_DIR, id);
+  const skillsDir = getSkillsDir();
+  const dir = path.join(skillsDir, id);
   const raw = safeRead(path.join(dir, "SKILL.md"));
   if (!raw) return null;
   const { fm, body } = parseFrontmatter(raw);
@@ -246,5 +266,5 @@ export function loadSkill(id: string): LoadedSkill | null {
 /** Lightweight check for the picker — true iff `example.html` exists. */
 export function skillHasPreview(id: string): boolean {
   if (!isValidId(id)) return false;
-  return fs.existsSync(path.join(SKILLS_DIR, id, "example.html"));
+  return fs.existsSync(path.join(getSkillsDir(), id, "example.html"));
 }

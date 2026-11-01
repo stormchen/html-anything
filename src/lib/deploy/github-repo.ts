@@ -118,11 +118,49 @@ async function commitFiles(
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     // 1. Resolve HEAD commit SHA (re-read on every retry to get latest)
-    const ref = (await ghRequest(
-      token,
-      `/repos/${repo}/git/ref/heads/${branch}`,
-    )) as { object: { sha: string } };
-    const headSha = ref.object.sha;
+    let headSha = "";
+    try {
+      const ref = (await ghRequest(
+        token,
+        `/repos/${repo}/git/ref/heads/${branch}`,
+      )) as { object: { sha: string } };
+      headSha = ref.object.sha;
+    } catch (refErr: any) {
+      if (refErr instanceof DeployError && refErr.status === 404) {
+        // Detailed diagnosis for 404
+        try {
+          const repoInfo = (await ghRequest(token, `/repos/${repo}`)) as {
+            default_branch?: string;
+            size?: number;
+          };
+          if (repoInfo.default_branch && repoInfo.default_branch !== branch) {
+            throw new DeployError(
+              `GitHub 儲存庫 ${repo} 的預設分支為「${repoInfo.default_branch}」，而不是「${branch}」。請在設定中將 Branch 改為「${repoInfo.default_branch}」。`,
+              400,
+            );
+          }
+          if (repoInfo.size === 0) {
+            throw new DeployError(
+              `GitHub 儲存庫 ${repo} 尚未初始化（空儲存庫）。請先在 GitHub 上建立至少一個檔案（例如勾選 Add README）以初始化「${branch}」分支。`,
+              400,
+            );
+          }
+          throw new DeployError(
+            `在儲存庫 ${repo} 中找不到分支「${branch}」，請確認分支名稱是否正確。`,
+            404,
+          );
+        } catch (repoErr: any) {
+          if (repoErr instanceof DeployError && repoErr.status === 404) {
+            throw new DeployError(
+              `找不到 GitHub 儲存庫「${repo}」，或 Token 無權限存取。請檢查：1. 倉庫格式需為 帳號/倉庫名 (如 your-name/your-repo)；2. 倉庫是否已存在；3. Token 是否具備 repo 或 Contents 讀寫權限。`,
+              404,
+            );
+          }
+          throw repoErr;
+        }
+      }
+      throw refErr;
+    }
 
     // 2. Resolve current tree SHA
     const headCommit = (await ghRequest(

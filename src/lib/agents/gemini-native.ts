@@ -11,9 +11,15 @@ export function invokeGeminiNative(opts: {
   apiKey: string;
 }): ReadableStream<InvokeEvent> {
   // Map friendly/display model IDs to the exact API model names
-  let model = opts.model || "gemini-2.5-pro";
+  let model = opts.model || "gemini-2.5-flash";
   if (model === "default") {
-    model = "gemini-2.5-pro";
+    model = "gemini-2.5-flash";
+  }
+  // Seamless migration for deprecated models in v1beta API
+  if (model === "gemini-2.5-pro") {
+    model = "gemini-3.1-pro-preview";
+  } else if (model === "gemini-1.5-pro" || model === "gemini-1.5-flash" || model === "gemini-2.0-flash") {
+    model = "gemini-2.5-flash";
   }
 
   const apiKey = opts.apiKey.trim();

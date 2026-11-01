@@ -82,6 +82,19 @@ export function Toolbar({
           </svg>
         </button>
         <ExportMenu iframeRef={iframeRef} />
+        <a
+          href="/api/auth/logout"
+          className="grid h-9 w-9 place-items-center rounded-full border text-[var(--ink-soft)] transition-all hover:border-red-300 hover:text-red-600 hover:bg-red-50/50"
+          style={{ background: "var(--surface)", borderColor: "var(--line)" }}
+          title="登出系統"
+          aria-label="登出系統"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </a>
       </div>
     </header>
   );

@@ -124,12 +124,11 @@ export const AGENTS: AgentDef[] = [
     protocol: "argv",
     fallbackModels: [
       DEFAULT_MODEL,
-      { id: "gemini-3.6-flash", label: "gemini-3.6-flash" },
-      { id: "gemini-3.5-flash-lite", label: "gemini-3.5-flash-lite" },
-      { id: "gemini-2.5-pro", label: "gemini-2.5-pro" },
-      { id: "gemini-2.5-flash", label: "gemini-2.5-flash" },
-      { id: "gemini-1.5-pro", label: "gemini-1.5-pro" },
-      { id: "gemini-1.5-flash", label: "gemini-1.5-flash" },
+      { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash (推薦 · 極速)" },
+      { id: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro (高思考推理)" },
+      { id: "gemini-flash-latest", label: "Gemini Flash Latest" },
+      { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
+      { id: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite" },
     ],
   },
   {

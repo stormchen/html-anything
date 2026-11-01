@@ -59,10 +59,10 @@ export async function GET() {
       : "";
     const map = parseEnvFile(content);
     return NextResponse.json({
-      NEXT_PUBLIC_OLLAMA_URL: map.get("NEXT_PUBLIC_OLLAMA_URL") ?? "",
-      NEXT_PUBLIC_OLLAMA_MODEL: map.get("NEXT_PUBLIC_OLLAMA_MODEL") ?? "",
-      NEXT_PUBLIC_DEFAULT_AGENT: map.get("NEXT_PUBLIC_DEFAULT_AGENT") ?? "",
-      GEMINI_API_KEY: map.get("GEMINI_API_KEY") ?? "",
+      NEXT_PUBLIC_OLLAMA_URL: map.get("NEXT_PUBLIC_OLLAMA_URL") ?? (process.env.NEXT_PUBLIC_OLLAMA_URL || ""),
+      NEXT_PUBLIC_OLLAMA_MODEL: map.get("NEXT_PUBLIC_OLLAMA_MODEL") ?? (process.env.NEXT_PUBLIC_OLLAMA_MODEL || ""),
+      NEXT_PUBLIC_DEFAULT_AGENT: map.get("NEXT_PUBLIC_DEFAULT_AGENT") ?? (process.env.NEXT_PUBLIC_DEFAULT_AGENT || "gemini"),
+      GEMINI_API_KEY: map.get("GEMINI_API_KEY") || (process.env.GEMINI_API_KEY || ""),
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
@@ -92,15 +92,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No valid keys to update" }, { status: 400 });
     }
 
-    const original = fs.existsSync(ENV_PATH)
-      ? fs.readFileSync(ENV_PATH, "utf-8")
-      : "";
-    const updated = serializeEnvFile(original, updates);
-    if (updated !== original) {
-      fs.writeFileSync(ENV_PATH, updated, "utf-8");
+    // Always update runtime process.env so it takes immediate effect
+    for (const [k, v] of Object.entries(updates)) {
+      process.env[k] = v;
     }
 
-    return NextResponse.json({ ok: true, updated: Object.keys(updates) });
+    let fileWritten = false;
+    try {
+      const original = fs.existsSync(ENV_PATH)
+        ? fs.readFileSync(ENV_PATH, "utf-8")
+        : "";
+      const updated = serializeEnvFile(original, updates);
+      if (updated !== original) {
+        fs.writeFileSync(ENV_PATH, updated, "utf-8");
+      }
+      fileWritten = true;
+    } catch (writeErr: any) {
+      console.warn("[Config API] Warning: could not write to .env.local file (safe in container/read-only env):", writeErr.message);
+    }
+
+    return NextResponse.json({ ok: true, updated: Object.keys(updates), fileWritten });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

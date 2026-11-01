@@ -75,27 +75,58 @@ pnpm dev
 
 ---
 
+## 🐳 Docker 容器化與 Mac mini 部署指引
 
-## 📦 生產環境建置與正式部署 (Production Deployment)
+本專案支援 Next.js 16 的 `output: "standalone"` 模式，並已配置多階段（Multi-stage）構建，映像檔輕量（約 150MB~200MB）、啟動迅速且支援 Apple Silicon (ARM64) 架構。
 
-若要將應用程式打包部署到正式環境（如伺服器或 Vercel、Docker 容器等）：
+### 部署到 Mac mini（推薦方式：直接在 Mac mini 上構建與運行）
+
+1. **在 Mac mini 上安裝 Docker**
+   - 推薦安裝 **[Docker Desktop for Mac](https://www.docker.com/products/docker-desktop/)** 或更輕量快速的 **[OrbStack](https://orbstack.dev/)**。
+2. **將專案放至 Mac mini**
+   - 透過 Git clone 或檔案傳輸將專案目錄複製到 Mac mini：
+     ```bash
+     git clone <your-repo> html-anything
+     cd html-anything
+     ```
+3. **設定環境變數**
+   - 複製範本建立 `.env`：
+     ```bash
+     cp .env.docker.example .env
+     ```
+   - 若 Mac mini 宿主機同時有運行 Ollama，專案預設已將 Ollama 連線設為 `http://host.docker.internal:11434`，容器可直接存取宿主機的 Ollama。
+4. **一鍵編譯並在背景啟動**
+   ```bash
+   docker compose up -d --build
+   ```
+5. **瀏覽器存取**
+   - Mac mini 本機：`http://localhost:3000`
+   - 家中/辦公室區域網路裝置（手機、平板、其他電腦）：`http://<Mac-mini-IP>:3000`
+6. **停止與重啟**
+   - 停止：`docker compose down`
+   - 查看日誌：`docker compose logs -f`
+
+---
+
+## 📦 生產環境傳統建置 (Node.js 原生模式)
+
+若不想使用 Docker，也可直接以 Node.js 原生模式部署：
 
 ### 1. 執行正式建置
 ```bash
 pnpm build
 ```
-此步驟會執行 TypeScript 型別檢查並產出最佳化後的正式生產檔案於 `.next` 目錄中。
 
 ### 2. 啟動生產環境伺服器
 ```bash
 pnpm start
 ```
-應用程式將會以生產模式運行，提供最佳的載入與執行效能。
 
 ---
 
-## 💡 針對 macOS 搭配 MLX-VLM 伺服器的優勢
+## 💡 針對 macOS 搭配 MLX-VLM / 本地 Ollama 的優勢
 
-若您的後端 AI 推論伺服器是使用 Mac Mini / Mac Studio 執行 **MLX-VLM**（基於 Apple Silicon 晶片加速）：
-- 只要將本網頁服務與 Mac AI 伺服器置於同一個區域網路下（例如 `192.168.68.*` 網段），並在 `.env.local` 正確指定 IP 與埠號（例如 `8080` 或 `11434`）。
-- 由於都在同網段內，網路傳輸延遲極低，可充分展現串流生成 HTML 與即時預覽的高效流暢體驗。
+若您的後端 AI 推論伺服器是使用 Mac Mini / Mac Studio 執行 **MLX-VLM** 或 **Ollama**（基於 Apple Silicon 晶片加速）：
+- 只要將本網頁服務與 Mac AI 伺服器置於同一個環境或區域網路下：
+  - Docker 容器內可直接使用 `http://host.docker.internal:11434` 或 `http://host.docker.internal:8080` 連線宿主機。
+- 由於同機或同網段內，網路傳輸延遲趨近於零，可充分展現串流生成 HTML 與即時預覽的高效流暢體驗。

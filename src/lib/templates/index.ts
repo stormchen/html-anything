@@ -23,22 +23,32 @@ export type TemplateExampleMeta = SkillExampleMeta;
 let cache: TemplateDef[] | null = null;
 let inflight: Promise<TemplateDef[]> | null = null;
 
-async function fetchTemplates(): Promise<TemplateDef[]> {
+async function fetchTemplates(retries = 2): Promise<TemplateDef[]> {
   if (cache) return cache;
   if (inflight) return inflight;
-  
-  inflight = fetch("/api/templates")
-    .then((res) => {
-      if (!res.ok) throw new Error(`GET /api/templates → ${res.status}`);
-      return res.json();
-    })
-    .then((json: { templates: TemplateDef[] }) => {
-      cache = json.templates;
-      return cache;
-    })
-    .finally(() => {
-      inflight = null;
-    });
+
+  inflight = (async () => {
+    let lastErr: unknown;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const res = await fetch("/api/templates");
+        if (res.ok) {
+          const json: { templates: TemplateDef[] } = await res.json();
+          cache = json.templates;
+          return cache;
+        }
+        lastErr = new Error(`GET /api/templates → ${res.status}`);
+      } catch (err) {
+        lastErr = err;
+      }
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
+      }
+    }
+    throw lastErr;
+  })().finally(() => {
+    inflight = null;
+  });
 
   return inflight;
 }
@@ -46,15 +56,15 @@ async function fetchTemplates(): Promise<TemplateDef[]> {
 /** Returns the registry. `undefined` while loading; never throws. */
 export function useTemplates(): TemplateDef[] | undefined {
   const [data, setData] = useState<TemplateDef[] | undefined>(cache ?? undefined);
-  
+
   useEffect(() => {
     if (cache) {
       setData(cache);
       return;
     }
-    
+
     let isMounted = true;
-    
+
     fetchTemplates()
       .then((v) => {
         if (isMounted) setData(v);
@@ -63,12 +73,12 @@ export function useTemplates(): TemplateDef[] | undefined {
         // surface as empty — picker shows "no matches", caller can decide
         if (isMounted) setData([]);
       });
-      
+
     return () => {
       isMounted = false;
     };
   }, []);
-  
+
   return data;
 }
 
@@ -84,9 +94,15 @@ export async function fetchTemplateExample(id: string): Promise<{
   content: string;
   html: string;
 } | null> {
-  const res = await fetch(`/api/templates/${encodeURIComponent(id)}/example`);
-  if (!res.ok) return null;
-  return res.json();
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(`/api/templates/${encodeURIComponent(id)}/example`);
+      if (res.ok) return await res.json();
+    } catch {
+      // 網路抖動時重試
+    }
+  }
+  return null;
 }
 
 /** Look up one template by id from the in-memory cache. Returns `undefined` if not loaded yet. */
