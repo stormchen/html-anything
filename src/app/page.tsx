@@ -8,7 +8,10 @@ import { TasksSidebar } from "@/components/tasks-sidebar";
 import { WelcomeModal } from "@/components/welcome-modal";
 import { SettingsModal } from "@/components/settings-modal";
 import { ConvertChip } from "@/components/convert-chip";
+import { MobileShell } from "@/components/mobile/mobile-shell";
 import { useStore, type AgentInfo } from "@/lib/store";
+import { setupClientAuthSync } from "@/lib/auth/client-sync";
+import { useIsMobile } from "@/lib/use-is-mobile";
 
 export default function Home() {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -23,8 +26,10 @@ export default function Home() {
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
+    setupClientAuthSync();
     setHydrated(true);
   }, []);
 
@@ -48,9 +53,26 @@ export default function Home() {
           if (env.NEXT_PUBLIC_OLLAMA_URL) {
             setAgentBinOverride("ollama", env.NEXT_PUBLIC_OLLAMA_URL);
           }
+          if (env.GEMINI_API_KEY && !useStore.getState().agentBinOverrides["gemini"]) {
+            setAgentBinOverride("gemini", env.GEMINI_API_KEY);
+          }
           if (env.NEXT_PUBLIC_DEFAULT_AGENT && !useStore.getState().selectedAgent) {
             setSelectedAgent(env.NEXT_PUBLIC_DEFAULT_AGENT);
           }
+        }
+        // Auto-rehydrate local deploy settings to server in case of server container restart
+        const ghSaved = useStore.getState().deployConfigs?.["github-repo"];
+        if (ghSaved && ghSaved.token && ghSaved.repo && !cancelled) {
+          fetch("/api/deploy/config?provider=github-repo", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              token: ghSaved.token.trim(),
+              repo: ghSaved.repo.trim(),
+              branch: (ghSaved.branch || "main").trim(),
+              siteUrl: (ghSaved.siteUrl || "").trim(),
+            }),
+          }).catch(() => {});
         }
       } catch {
         // silent — store already has localStorage fallback
@@ -79,9 +101,13 @@ export default function Home() {
   }, [locale]);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || isMobile) return;
     if (!welcomeAck || !selectedAgent) setWelcomeOpen(true);
-  }, [hydrated, welcomeAck, selectedAgent]);
+  }, [hydrated, isMobile, welcomeAck, selectedAgent]);
+
+  if (hydrated && isMobile) {
+    return <MobileShell iframeRef={iframeRef} />;
+  }
 
   return (
     <main className="relative flex h-screen flex-col">

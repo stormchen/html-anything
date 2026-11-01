@@ -179,6 +179,7 @@ type Persisted = {
   sidebarCollapsed: boolean;
   locale: Locale;
   layoutMode: LayoutMode;
+  deployConfigs?: Record<string, Record<string, string>>;
 };
 
 type State = {
@@ -197,6 +198,8 @@ type State = {
   sidebarCollapsed: boolean;
   locale: Locale;
   layoutMode: LayoutMode;
+  deployConfigs: Record<string, Record<string, string>>;
+  setDeployConfigFor: (providerId: string, cfg: Record<string, string>) => void;
 
   // task lifecycle
   newTask: (init?: Partial<Pick<Task, "name" | "content" | "format" | "filename" | "templateId">>) => string;
@@ -282,7 +285,7 @@ const ENV_OLLAMA_URL = process.env.NEXT_PUBLIC_OLLAMA_URL?.trim() || "";
 const ENV_OLLAMA_MODEL = process.env.NEXT_PUBLIC_OLLAMA_MODEL?.trim() || "";
 const ENV_DEFAULT_AGENT = process.env.NEXT_PUBLIC_DEFAULT_AGENT?.trim() || "";
 
-const initialTask = makeTask({ name: "任务 1" });
+const initialTask = makeTask({ name: "任務 1" });
 
 export const useStore = create<State>()(
   persist(
@@ -295,13 +298,22 @@ export const useStore = create<State>()(
       agentBinOverrides: (ENV_OLLAMA_URL ? { ollama: ENV_OLLAMA_URL } : {}) as Record<string, string>,
       welcomeAck: false,
       sidebarCollapsed: false,
-      locale: "en",
+      locale: "zh-TW",
       layoutMode: "split",
+      deployConfigs: {},
+      setDeployConfigFor: (providerId, cfg) => {
+        set((s) => ({
+          deployConfigs: {
+            ...s.deployConfigs,
+            [providerId]: { ...(s.deployConfigs[providerId] ?? {}), ...cfg },
+          },
+        }));
+      },
 
       newTask: (init) => {
         const tasks = get().tasks;
         const n = tasks.length + 1;
-        const t = makeTask({ name: init?.name ?? `任务 ${n}`, ...init });
+        const t = makeTask({ name: init?.name ?? `任務 ${n}`, ...init });
         set({ tasks: [...tasks, t], activeTaskId: t.id });
         return t.id;
       },
@@ -485,11 +497,12 @@ export const useStore = create<State>()(
         sidebarCollapsed: s.sidebarCollapsed,
         locale: s.locale,
         layoutMode: s.layoutMode,
+        deployConfigs: s.deployConfigs,
       }),
       // Custom merge: when restoring from localStorage, fill in env-var
       // defaults for any Ollama settings that were never saved by the user.
       merge: (persisted, current) => {
-        const p = persisted as Partial<State>;
+        const p = (persisted ?? {}) as Partial<State>;
         return {
           ...current,
           ...p,
@@ -503,8 +516,8 @@ export const useStore = create<State>()(
             ...(ENV_OLLAMA_MODEL ? { ollama: ENV_OLLAMA_MODEL } : {}),
             ...(p.agentModels ?? {}),
           },
-          // If localStorage has no selected agent, apply the env var
           selectedAgent: (p.selectedAgent ?? ENV_DEFAULT_AGENT) || undefined,
+          deployConfigs: p.deployConfigs ?? {},
         };
       },
       migrate: (persisted, fromVersion): Persisted => {
